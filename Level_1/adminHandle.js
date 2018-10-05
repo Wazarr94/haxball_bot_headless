@@ -2,7 +2,7 @@
 
 2 things in this file : the updateAdmins function which allow to keep an admin anytime, and the adminPassword.
 First thing is much wanted if you plan to have your room going while you're away.
-The second one makes it so if you accidentaly lose your admin, you'll need a way to recover it. The password will show up in the console.
+The second one makes it so if you accidentaly lose your admin, you can recover it. The password will show up in the console.
 
 */
 
