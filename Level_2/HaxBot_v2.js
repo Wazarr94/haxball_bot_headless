@@ -61,7 +61,7 @@ var streak = 0;
 
 /* AUXILIARY */
 
-var checkTimeVariable = 0;
+
 
 /* FUNCTIONS */
 
@@ -182,40 +182,28 @@ function checkTime() {
 	const scores = room.getScores();
 	if (Math.abs(scores.time - scores.timeLimit) <= 0.01) {
 		if (scores.red != scores.blue) {
-			checkTimeVariable += 1;
-			if (checkTimeVariable == 1) {
-				if (scores.red > scores.blue) {
-					endGame(Team.RED);
-                    setTimeout(function(){ room.stopGame(); }, 1000);
-				}
-				else {
-					endGame(Team.BLUE);
-                    setTimeout(function(){ room.stopGame(); }, 1000);
-				}
+			if (scores.red > scores.blue) {
+				endGame(Team.RED);
+				setTimeout(function(){ room.stopGame(); }, 1000);
 			}
-			setTimeout(function() { checkTimeVariable = 0; }, 1500); 
+			else {
+				endGame(Team.BLUE);
+				setTimeout(function(){ room.stopGame(); }, 1000);
+			}
 			return;
 		}
 		goldenGoal = true;
 		room.sendChat("⚽ First goal wins! ⚽");
 	}
 	if (Math.abs(drawTimeLimit * 60 - scores.time - 60) <= 0.01 && players.length > 2) {
-		checkTimeVariable += 1;
-		if (checkTimeVariable == 1) {
-			room.sendChat("⌛ 60 seconds left until draw! ⌛");
-			setTimeout(function() { checkTimeVariable = 0; }, 10); 
-			return;
-		}
+		room.sendChat("⌛ 60 seconds left until draw! ⌛");
+		return;
 	}
 	if (Math.abs(scores.time - drawTimeLimit * 60) <= 0.01 && players.length > 2) {
-		checkTimeVariable += 1;
-		if (checkTimeVariable == 1) {
-			endGame(Team.SPECTATORS);
-			room.stopGame();
-			goldenGoal = false;
-			setTimeout(function() { checkTimeVariable = 0; }, 10); 
-			return;
-		}
+		endGame(Team.SPECTATORS);
+		room.stopGame();
+		goldenGoal = false;
+		return;
 	}
 }
 
@@ -355,36 +343,64 @@ room.onPlayerChat = function(player, message) {
 			room.setPlayerAdmin(player.id, true);
 		}
 	}
-	if (message[0] == "!mute") { // improve so I can just !mute <nick>
+	if (message[0] == "!mute") {
 		if (player.admin) {
 			if (message.length == 3 || message.length == 4) {
-				if (["R","B","S"].includes(message[1])) {
-					var minutes;
-					if (!Number.isNaN(Number.parseInt(message[2]))) {
-						if (Number.parseInt(message[2]) <= teamR.length || Number.parseInt(message[2]) > 0) {
-							if (message.length == 4) {
-								if (!Number.isNaN(Number.parseInt(message[3]))) {
-									if (Number.parseInt(message[3]) > 0) {
-										timeOut = Number.parseInt(message[3]) * 60 * 1000;
+				if (["R","B","S"].includes(message[1])) { // message[1] in ["R", "B", "S"]
+					var timeOut;
+					if (message[1] == "R") {
+						if (!Number.isNaN(Number.parseInt(message[2]))) {
+							if (Number.parseInt(message[2]) <= teamR.length || Number.parseInt(message[2]) > 0) {
+								if (message.length == 4) {
+									if (!Number.isNaN(Number.parseInt(message[3]))) {
+										if (Number.parseInt(message[3]) > 0) {
+											timeOut = Number.parseInt(message[3]) * 60 * 1000;
+										}
 									}
 								}
-							}
-							else {
-								timeOut = 3 * 60 * 1000;
+								else {
+									timeOut = 3 * 60 * 1000;
+								}
 							}
 						}
-					}
-					if (message[1] == "R") {
 						setTimeout(function(name) { muteList = muteList.filter((p) => p != name) }, timeOut, teamR[Number.parseInt(message[2]) - 1].name);
 						muteList.push(teamR[Number.parseInt(message[2]) - 1].name);
 						room.sendChat(teamR[Number.parseInt(message[2]) - 1].name + " has been muted for " + (timeOut/60000) + " minutes!");
 					}
 					if (message[1] == "B") {
+						if (!Number.isNaN(Number.parseInt(message[2]))) {
+							if (Number.parseInt(message[2]) <= teamB.length || Number.parseInt(message[2]) > 0) {
+								if (message.length == 4) {
+									if (!Number.isNaN(Number.parseInt(message[3]))) {
+										if (Number.parseInt(message[3]) > 0) {
+											timeOut = Number.parseInt(message[3]) * 60 * 1000;
+										}
+									}
+								}
+								else {
+									timeOut = 3 * 60 * 1000;
+								}
+							}
+						}
 						setTimeout(function(name) { muteList = muteList.filter((p) => p != name) }, timeOut, teamB[Number.parseInt(message[2]) - 1].name);
 						muteList.push(teamB[Number.parseInt(message[2]) - 1].name);
 						room.sendChat(teamB[Number.parseInt(message[2]) - 1].name + " has been muted for " + (timeOut/60000) + " minutes!");
 					}
 					if (message[1] == "S") {
+						if (!Number.isNaN(Number.parseInt(message[2]))) {
+							if (Number.parseInt(message[2]) <= teamS.length || Number.parseInt(message[2]) > 0) {
+								if (message.length == 4) {
+									if (!Number.isNaN(Number.parseInt(message[3]))) {
+										if (Number.parseInt(message[3]) > 0) {
+											timeOut = Number.parseInt(message[3]) * 60 * 1000;
+										}
+									}
+								}
+								else {
+									timeOut = 3 * 60 * 1000;
+								}
+							}
+						}
 						setTimeout(function(name) { muteList = muteList.filter((p) => p != name) }, timeOut, teamS[Number.parseInt(message[2]) - 1].name);
 						muteList.push(teamS[Number.parseInt(message[2]) - 1].name);
 						room.sendChat(teamS[Number.parseInt(message[2]) - 1].name + " has been muted for " + (timeOut/60000) + " minutes!");
@@ -395,6 +411,19 @@ room.onPlayerChat = function(player, message) {
 		return false;
     }
     if (message[0] == "!unmute") {
+		if (player.admin) {
+			if (message.length == 2 && message[1] == "all") {
+				muteList = [];
+			}
+			if (message.length >= 2) {
+				var name = "";
+				for (var i = 1 ; i < message.length ; i++) {
+					name += message[i] + " ";
+				}
+				name = name.substring(0,name.length - 1);
+				muteList = muteList.filter((p) => p != name);
+			}
+		}
     }
 	if (message[0] == "!clearbans") {
 		if (player.admin) {
