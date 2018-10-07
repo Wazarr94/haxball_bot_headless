@@ -8,10 +8,10 @@ Changelog : Stats globales, AFK, meilleur système pr l'après game, slow mode
 
 /* ROOM */
 
-const roomName = "Room Name";
+const roomName = " ⭐ FUTSAL | Stats et plus ! ⭐";
 const botName = "BOT";
 const maxPlayers = 12;
-const roomPublic = false;
+const roomPublic = true;
 const geo = [{"code": "DE", "lat": 51.1, "lon": 10.4}, {"code": "FR", "lat": 46.2, "lon": 2.2}, {"code": "PL", "lat": 51.9, "lon": 19.1}, {"code": "GB", "lat": 55.3, "lon": -3.4}];
 const scoreLimit = 3;
 const timeLimit = 3;
@@ -23,7 +23,7 @@ const Team = {
 const adminPassword = 1000 + getRandomInt(9000);
 console.log("adminPassword : " + adminPassword);
 
-const room = HBInit({roomName: roomName, maxPlayers: maxPlayers, public: roomPublic, playerName: botName, geo: geo[0]});
+const room = HBInit({roomName: roomName, maxPlayers: maxPlayers, public: roomPublic, playerName: botName, geo: geo[1]});
 
 room.setScoreLimit(scoreLimit);
 room.setTimeLimit(timeLimit);
@@ -36,7 +36,7 @@ var ballRadius = 10;
 
 /* OPTIONS */
 
-var afkLimit = 11;
+var afkLimit = 13;
 var drawTimeLimit = Infinity;
 var maxTeamSize = 4;
 
@@ -524,20 +524,46 @@ function updateStats(winner) {
 }
 
 setInterval(function() {
+	var tableau = [];
 	if (count_stats % 5 == 0) {
-		room.sendChat("!games");
+		Object.keys(localStorage).forEach(function(key) { if (!["player_name", "view_mode", "geo", "avatar"].includes(key)) { tableau.push([key,(JSON.parse(localStorage.getItem(key))[0])]); } });
+		if (tableau.length < 5) {
+			return false;
+		}
+		tableau.sort(function(a, b) { return b[1] - a[1]; });
+		room.sendChat("Games> #1 " + tableau[0][0] + ": " + tableau[0][1] + " #2 " + tableau[1][0] + ": " + tableau[1][1] + " #3 " + tableau[2][0] + ": " + tableau[2][1] + " #4 " + tableau[3][0] + ": " + tableau[3][1] + " #5 " + tableau[4][0] + ": " + tableau[4][1]);
 	}
 	if (count_stats % 5 == 1) {
-		room.sendChat("!wins");
-	}
+		Object.keys(localStorage).forEach(function(key) { if (!["player_name", "view_mode", "geo", "avatar"].includes(key)) { tableau.push([key,(JSON.parse(localStorage.getItem(key))[1])]); } });
+		if (tableau.length < 5) {
+			return false;
+		}
+		tableau.sort(function(a, b) { return b[1] - a[1]; });
+		room.sendChat("Wins> #1 " + tableau[0][0] + ": " + tableau[0][1] + " #2 " + tableau[1][0] + ": " + tableau[1][1] + " #3 " + tableau[2][0] + ": " + tableau[2][1] + " #4 " + tableau[3][0] + ": " + tableau[3][1] + " #5 " + tableau[4][0] + ": " + tableau[4][1]);
+		}
 	if (count_stats % 5 == 2) {
-		room.sendChat("!goals");
+		Object.keys(localStorage).forEach(function(key) { if (!["player_name", "view_mode", "geo", "avatar"].includes(key)) { tableau.push([key,(JSON.parse(localStorage.getItem(key))[5])]); } });
+		if (tableau.length < 5) {
+			return false;
+		}
+		tableau.sort(function(a, b) { return b[1] - a[1]; });
+		room.sendChat("Goals> #1 " + tableau[0][0] + ": " + tableau[0][1] + " #2 " + tableau[1][0] + ": " + tableau[1][1] + " #3 " + tableau[2][0] + ": " + tableau[2][1] + " #4 " + tableau[3][0] + ": " + tableau[3][1] + " #5 " + tableau[4][0] + ": " + tableau[4][1]);
 	}
 	if (count_stats % 5 == 3) {
-		room.sendChat("!assists");
+		Object.keys(localStorage).forEach(function(key) { if (!["player_name", "view_mode", "geo", "avatar"].includes(key)) { tableau.push([key,(JSON.parse(localStorage.getItem(key))[6])]); } });
+		if (tableau.length < 5) {
+			return false;
+		}
+		tableau.sort(function(a, b) { return b[1] - a[1]; });
+		room.sendChat("Assists> #1 " + tableau[0][0] + ": " + tableau[0][1] + " #2 " + tableau[1][0] + ": " + tableau[1][1] + " #3 " + tableau[2][0] + ": " + tableau[2][1] + " #4 " + tableau[3][0] + ": " + tableau[3][1] + " #5 " + tableau[4][0] + ": " + tableau[4][1]);
 	}
 	if (count_stats % 5 == 4) {
-		room.sendChat("!cs");
+		Object.keys(localStorage).forEach(function(key) { if (!["player_name", "view_mode", "geo", "avatar"].includes(key)) { tableau.push([key,(JSON.parse(localStorage.getItem(key))[8])]); } });
+		if (tableau.length < 5) {
+			return false;
+		}
+		tableau.sort(function(a, b) { return b[1] - a[1]; });
+		room.sendChat("Assists> #1 " + tableau[0][0] + ": " + tableau[0][1] + " #2 " + tableau[1][0] + ": " + tableau[1][1] + " #3 " + tableau[2][0] + ": " + tableau[2][1] + " #4 " + tableau[3][0] + ": " + tableau[3][1] + " #5 " + tableau[4][0] + ": " + tableau[4][1]);
 	}
 	count_stats++;
 }, 6 * 60 * 1000);
@@ -566,7 +592,9 @@ room.onPlayerTeamChange = function(changedPlayer, byPlayer) {
 			}
 		}
 	}
-	updateLists(Math.max(teamR.findIndex((p) => p.id == changedPlayer.id), teamB.findIndex((p) => p.id == changedPlayer.id), teamS.findIndex((p) => p.id == changedPlayer.id)), changedPlayer.team);
+	if (changedPlayer.team == Team.SPECTATORS) {
+		updateLists(Math.max(teamR.findIndex((p) => p.id == changedPlayer.id), teamB.findIndex((p) => p.id == changedPlayer.id), teamS.findIndex((p) => p.id == changedPlayer.id)), changedPlayer.team);
+	}
 	updateTeams();
 }
 
@@ -758,6 +786,7 @@ room.onPlayerActivity = function(player) {
 room.onGameStart = function(byPlayer) {
 	game = new Game(Date.now(),room.getScores(),[]);
 	countAFK = true;
+	goldenGoal = false;
 	lastPlayersTouched = [null, null];
     Rposs = 0;
 	Bposs = 0;
@@ -831,16 +860,16 @@ room.onTeamGoal = function(team) {
 	else {
 		if (lastPlayersTouched[0] != null && lastPlayersTouched[0].team == Team.BLUE) {
 			if (lastPlayersTouched[1] != null && lastPlayersTouched[1].team == Team.BLUE) {
-				room.sendChat("⚽ " + getTime(scores) + " Goal by " + lastPlayersTouched[0].name + " ! Assist by " + lastPlayersTouched[1].name + ". Goal speed : " + ballSpeed.toPrecision(4).toString() + "km/h 🔴");
+				room.sendChat("⚽ " + getTime(scores) + " Goal by " + lastPlayersTouched[0].name + " ! Assist by " + lastPlayersTouched[1].name + ". Goal speed : " + ballSpeed.toPrecision(4).toString() + "km/h 🔵");
 				game.goals.push(new Goal(scores.time, Team.BLUE, lastPlayersTouched[0], lastPlayersTouched[1]));
 			}
 			else {
-				room.sendChat("⚽ " + getTime(scores) + " Goal by " + lastPlayersTouched[0].name + " ! Goal speed : " + ballSpeed.toPrecision(4).toString() + "km/h 🔴");
+				room.sendChat("⚽ " + getTime(scores) + " Goal by " + lastPlayersTouched[0].name + " ! Goal speed : " + ballSpeed.toPrecision(4).toString() + "km/h 🔵");
 				game.goals.push(new Goal(scores.time, Team.BLUE, lastPlayersTouched[0], null));
 			}
 		}
 		else {
-			room.sendChat("😂 " + getTime(scores) + " Own Goal by " + lastPlayersTouched[0].name + " ! Goal speed : " + ballSpeed.toPrecision(4).toString() + "km/h 🔴");
+			room.sendChat("😂 " + getTime(scores) + " Own Goal by " + lastPlayersTouched[0].name + " ! Goal speed : " + ballSpeed.toPrecision(4).toString() + "km/h 🔵");
 			game.goals.push(new Goal(scores.time, Team.BLUE, null, null));
 		}
 		if (scores.blue == scores.scoreLimit || goldenGoal == true) {
