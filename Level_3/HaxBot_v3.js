@@ -1,6 +1,7 @@
 /*
 
-Changelog : Stats globales, AFK, meilleur système pr l'après game, slow mode
+Changelog : Global statistics, AFK handling, login system, slow mode
+Stats: "playerName" : '["0-Games", "1-Wins", "2-Draws", "3-Losses", "4-Winrate", "5-Goals", "6-Assists", "7-GK", "8-CS", "9-CS%", "10 (OPTIONNAL) - Password]'
 
 */
 
@@ -8,7 +9,7 @@ Changelog : Stats globales, AFK, meilleur système pr l'après game, slow mode
 
 /* ROOM */
 
-const roomName = " ⭐ FUTSAL | Stats et plus ! ⭐";
+const roomName = "Room Name";
 const botName = "BOT";
 const maxPlayers = 12;
 const roomPublic = false;
