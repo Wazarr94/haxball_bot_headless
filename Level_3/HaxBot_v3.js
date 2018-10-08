@@ -11,7 +11,7 @@ Changelog : Stats globales, AFK, meilleur système pr l'après game, slow mode
 const roomName = " ⭐ FUTSAL | Stats et plus ! ⭐";
 const botName = "BOT";
 const maxPlayers = 12;
-const roomPublic = true;
+const roomPublic = false;
 const geo = [{"code": "DE", "lat": 51.1, "lon": 10.4}, {"code": "FR", "lat": 46.2, "lon": 2.2}, {"code": "PL", "lat": 51.9, "lon": 19.1}, {"code": "GB", "lat": 55.3, "lon": -3.4}];
 const scoreLimit = 3;
 const timeLimit = 3;
@@ -20,7 +20,7 @@ const Team = {
 	RED: 1,
 	BLUE: 2
 };
-const adminPassword = 1000 + getRandomInt(9000);
+var adminPassword = 100 + getRandomInt(900);
 console.log("adminPassword : " + adminPassword);
 
 const room = HBInit({roomName: roomName, maxPlayers: maxPlayers, public: roomPublic, playerName: botName, geo: geo[1]});
@@ -33,12 +33,14 @@ room.setTeamsLock(true);
 
 const playerRadius = 15;
 var ballRadius = 10;
+const triggerDistance = playerRadius + ballRadius + 0.01;
 
 /* OPTIONS */
 
-var afkLimit = 13;
+var afkLimit = 12;
 var drawTimeLimit = Infinity;
 var maxTeamSize = 4;
+var slowMode = 0;
 
 /* PLAYERS */
 
@@ -51,13 +53,14 @@ var teamS;
 
 var inactivityPlayers = new Array(2 * maxTeamSize).fill(0);
 var countAFK = false;
-const triggerDistance = playerRadius + ballRadius + 0.01;
 var lastTeamTouched;
 var lastPlayersTouched;
 var goldenGoal = false;
 var activePlay = false;
 var muteList = [];
-var timeOutCap;
+var SMSet = new Set();
+var confPlayers = [];
+var confID = [];
 
 /* STATS */
 
@@ -72,6 +75,7 @@ var streak = 0;
 
 /* AUXILIARY */
 
+var checkTimeVariable = 0;
 var count_stats = 0;
 
 /* OBJECTS */
@@ -209,27 +213,39 @@ function checkTime() {
 	game.scores = scores;
 	if (Math.abs(scores.time - scores.timeLimit) <= 0.01) {
 		if (scores.red != scores.blue) {
-			if (scores.red > scores.blue) {
-				endGame(Team.RED);
-				setTimeout(function(){ room.stopGame(); }, 2000);
+			checkTimeVariable += 1;
+			if (checkTimeVariable == 1) {
+				if (scores.red > scores.blue) {
+					endGame(Team.RED);
+					setTimeout(function(){ room.stopGame(); }, 2000);
+				}
+				else {
+					endGame(Team.BLUE);
+					setTimeout(function(){ room.stopGame(); }, 2000);
+				}
 			}
-			else {
-				endGame(Team.BLUE);
-				setTimeout(function(){ room.stopGame(); }, 2000);
-			}
+			setTimeout(function() { checkTimeVariable = 0; }, 3000); 
 			return;
 		}
 		goldenGoal = true;
 		room.sendChat("⚽ First goal wins! ⚽");
 	}
 	if (Math.abs(drawTimeLimit * 60 - scores.time - 60) <= 0.01 && players.length > 2) {
-		room.sendChat("⌛ 60 seconds left until draw! ⌛");
+		checkTimeVariable += 1;
+		if (checkTimeVariable == 1) {
+			room.sendChat("⌛ 60 seconds left until draw! ⌛");
+		}
+		setTimeout(function() { checkTimeVariable = 0; }, 10); 
 		return;
 	}
 	if (Math.abs(scores.time - drawTimeLimit * 60) <= 0.01 && players.length > 2) {
-		endGame(Team.SPECTATORS);
-		room.stopGame();
-		goldenGoal = false;
+		checkTimeVariable += 1;
+		if (checkTimeVariable == 1) {
+			endGame(Team.SPECTATORS);
+			room.stopGame();
+			goldenGoal = false;
+		}
+		setTimeout(function() { checkTimeVariable = 0; }, 10); 
 		return;
 	}
 }
@@ -286,7 +302,7 @@ function resumeGame() {
 
 function balanceTeams() {
 	if (players.length == 1 && teamR.length == 0) {
-		quickRestart();
+		room.stopGame();
 		room.setPlayerTeam(players[0].id, Team.RED);
 	}
 	else if (Math.abs(teamR.length - teamB.length) == teamS.length && teamS.length > 0) {
@@ -326,8 +342,7 @@ function balanceTeams() {
 		room.pauseGame(true);
 	}
 	else if (teamS.length >= 2 && teamR.length == teamB.length && teamR.length < maxTeamSize) {
-		room.setPlayerTeam(teamS[0].id, Team.RED);
-		room.setPlayerTeam(teamS[1].id, Team.BLUE);
+		topBtn();
 	}
 }
 
@@ -571,9 +586,18 @@ setInterval(function() {
 /* EVENTS */
 
 room.onPlayerJoin = function(player) {
-	room.sendChat("👋 Welcome " + player.name + " !");
 	updateTeams();
+	if (players.filter((p) => p.name == player.name ).length > 1 || ["player_name", "view_mode", "geo", "avatar"].includes(player.name)) {
+		room.kickPlayer(player.id,"Name already taken!", false);
+		return;
+	}
+	room.sendChat("👋 Welcome " + player.name + " !");
 	updateAdmins();
+	if (JSON.parse(localStorage.getItem(player.name))[10] != undefined) {
+		room.sendChat(player.name + " is a restricted nickname. Please enter !login <password> within 12 seconds.");
+		confPlayers.push([player.id, setTimeout((id) => { room.kickPlayer(id, "No login", false); }, 12 * 1000, player.id)]);
+		confID.push(player.id);
+	}
 }
 
 room.onPlayerTeamChange = function(changedPlayer, byPlayer) {
@@ -622,9 +646,40 @@ room.onPlayerChat = function(player, message) {
 			inactivityPlayers[maxTeamSize + teamB.findIndex(((blue) => blue.id == player.id))] = 0;
 		}
 	}
+	if (confID.findIndex((p) => p == player.id) != -1) {
+		if (message[0].toLowerCase() == "!login") {
+			if (message[1] == JSON.parse(localStorage.getItem(player.name))[10]) {
+				room.sendChat(player.name + " successfully logged in !");
+				const number = confID.findIndex((p) => p == player.id);
+				clearTimeout(confPlayers[number][1]);
+				confID.splice(number, 1); 
+				confPlayers.splice(number, 1);
+			}
+		}
+		return false;
+	}
 	if (message[0].toLowerCase() == "!help") {
 		room.sendChat("Player commands : !me, !playerstats <nick>.");
 		room.sendChat("Admin : !balance, !mute <team> <position> <duration (default 3)>, !unmute all or !unmute <nick>, !clearbans");
+	}
+	if (message[0].toLowerCase() == "!register") {
+		if (JSON.parse(localStorage.getItem(player.name))[10] == undefined) {
+			if (message.length == 2) {
+				if (message[1].length < 4) {
+					return false;
+				}
+				room.sendChat(player.name + " successfully registered !");
+				var stats;
+				if (localStorage.getItem(player.name)) {
+					stats = JSON.parse(localStorage.getItem(player.name));
+				}
+				else {
+					stats = [0,0,0,0,"0.00",0,0,0,0,"0.00"];
+				}
+				stats.push(message[1]);
+				localStorage.setItem(player.name, JSON.stringify(stats));
+			}
+		}
 	}
 	if (message[0].toLowerCase() == "!me") {
 		if (localStorage.getItem(player.name)) {
@@ -708,12 +763,14 @@ room.onPlayerChat = function(player, message) {
 	if (message[0].toLowerCase() == '!claim') {
 		if (message[1] == adminPassword) {
 			room.setPlayerAdmin(player.id, true);
+			adminPassword = 100 + getRandomInt(900);
+			console.log("adminPassword : " + adminPassword);
 		}
 	}
 	if (message[0].toLowerCase() == "!balance") {
 		if (player.admin) {
 			for (var i = 0; i < 4; i++) {
-				balanceTeams();
+				setTimeout(() => { balanceTeams(); }, i);
 			} 
 		}
 	}
@@ -721,32 +778,60 @@ room.onPlayerChat = function(player, message) {
 		if (player.admin) {
 			if (message.length == 3 || message.length == 4) {
 				if (["R","B","S"].includes(message[1])) {
-					var minutes;
-					if (!Number.isNaN(Number.parseInt(message[2]))) {
-						if (Number.parseInt(message[2]) <= teamR.length || Number.parseInt(message[2]) > 0) {
-							if (message.length == 4) {
-								if (!Number.isNaN(Number.parseInt(message[3]))) {
-									if (Number.parseInt(message[3]) > 0) {
-										timeOut = Number.parseInt(message[3]) * 60 * 1000;
+					var timeOut;
+					if (message[1] == "R") {
+						if (!Number.isNaN(Number.parseInt(message[2]))) {
+							if (Number.parseInt(message[2]) <= teamR.length || Number.parseInt(message[2]) > 0) {
+								if (message.length == 4) {
+									if (!Number.isNaN(Number.parseInt(message[3]))) {
+										if (Number.parseInt(message[3]) > 0) {
+											timeOut = Number.parseInt(message[3]) * 60 * 1000;
+										}
 									}
 								}
-							}
-							else {
-								timeOut = 3 * 60 * 1000;
+								else {
+									timeOut = 3 * 60 * 1000;
+								}
 							}
 						}
-					}
-					if (message[1] == "R") {
 						setTimeout(function(name) { muteList = muteList.filter((p) => p != name) }, timeOut, teamR[Number.parseInt(message[2]) - 1].name);
 						muteList.push(teamR[Number.parseInt(message[2]) - 1].name);
 						room.sendChat(teamR[Number.parseInt(message[2]) - 1].name + " has been muted for " + (timeOut/60000) + " minutes!");
 					}
 					if (message[1] == "B") {
+						if (!Number.isNaN(Number.parseInt(message[2]))) {
+							if (Number.parseInt(message[2]) <= teamB.length || Number.parseInt(message[2]) > 0) {
+								if (message.length == 4) {
+									if (!Number.isNaN(Number.parseInt(message[3]))) {
+										if (Number.parseInt(message[3]) > 0) {
+											timeOut = Number.parseInt(message[3]) * 60 * 1000;
+										}
+									}
+								}
+								else {
+									timeOut = 3 * 60 * 1000;
+								}
+							}
+						}
 						setTimeout(function(name) { muteList = muteList.filter((p) => p != name) }, timeOut, teamB[Number.parseInt(message[2]) - 1].name);
 						muteList.push(teamB[Number.parseInt(message[2]) - 1].name);
 						room.sendChat(teamB[Number.parseInt(message[2]) - 1].name + " has been muted for " + (timeOut/60000) + " minutes!");
 					}
 					if (message[1] == "S") {
+						if (!Number.isNaN(Number.parseInt(message[2]))) {
+							if (Number.parseInt(message[2]) <= teamS.length || Number.parseInt(message[2]) > 0) {
+								if (message.length == 4) {
+									if (!Number.isNaN(Number.parseInt(message[3]))) {
+										if (Number.parseInt(message[3]) > 0) {
+											timeOut = Number.parseInt(message[3]) * 60 * 1000;
+										}
+									}
+								}
+								else {
+									timeOut = 3 * 60 * 1000;
+								}
+							}
+						}
 						setTimeout(function(name) { muteList = muteList.filter((p) => p != name) }, timeOut, teamS[Number.parseInt(message[2]) - 1].name);
 						muteList.push(teamS[Number.parseInt(message[2]) - 1].name);
 						room.sendChat(teamS[Number.parseInt(message[2]) - 1].name + " has been muted for " + (timeOut/60000) + " minutes!");
@@ -757,7 +842,44 @@ room.onPlayerChat = function(player, message) {
 		return false;
     }
     if (message[0].toLowerCase() == "!unmute") {
+		if (player.admin) {
+			if (message.length == 2 && message[1] == "all") {
+				muteList = [];
+			}
+			if (message.length >= 2) {
+				var name = "";
+				for (var i = 1 ; i < message.length ; i++) {
+					name += message[i] + " ";
+				}
+				name = name.substring(0,name.length - 1);
+				muteList = muteList.filter((p) => p != name);
+			}
+		}
     }
+	if (message[0].toLowerCase() == "!slow") {
+		if (player.admin) {
+			if (message.length == 1) {
+				slowMode = 2;
+				room.sendChat("2s Slow Mode enabled !");
+			}
+			else if (message.length == 2) {
+				if (!Number.isNaN(Number.parseInt(message[1]))) {
+					if (Number.parseInt(message[1]) > 0) {
+						slowMode = Number.parseInt(message[1]);
+						room.sendChat(slowMode + "s Slow Mode enabled !");
+						return;
+					}
+				}
+				slowMode = 2;
+				room.sendChat("2s Slow Mode enabled !");
+			}
+		}
+	}
+	if (message[0].toLowerCase() == "!endslow") {
+		if (player.admin) {
+			slowMode = 0;
+		}
+	}
 	if (message[0].toLowerCase() == "!clearbans") {
 		if (player.admin) {
 			room.clearBans();
@@ -770,6 +892,17 @@ room.onPlayerChat = function(player, message) {
 	}
 	if (muteList.includes(player.name)) {
 		return false;
+	}
+	if (slowMode > 0) {
+		if (!player.admin) {
+			if (!SMSet.has(player.id)) {
+				SMSet.add(player.id);
+				setTimeout((number) => { SMSet.delete(number); }, slowMode * 1000, player.id);
+			}
+			else {
+				return false;
+			}
+		}
 	}
 }
 
