@@ -366,7 +366,7 @@ function resumeGame() {
 /* PLAYER FUNCTIONS */
 
 function updateTeams() {
-	players = room.getPlayerList().filter((player) => player.id != 0 && player.id != 1);
+	players = room.getPlayerList().filter((player) => player.id != 0);
 	teamR = players.filter(p => p.team === Team.RED);
 	teamB = players.filter(p => p.team === Team.BLUE);
 	teamS = players.filter(p => p.team === Team.SPECTATORS);
@@ -420,7 +420,7 @@ function getMute(player) {
 function updateRoleOnPlayerIn() {
 	playerInOrOut = 1;
 	setTimeout(function() { playerInOrOut = 0; }, 100);
-	players = room.getPlayerList().filter((player) => player.id != 0 && player.id != 1);
+	players = room.getPlayerList().filter((player) => player.id != 0);
 	updateTeams();
 	if (inChooseMode) {
 		if (players.length == 6) {
@@ -435,7 +435,7 @@ function updateRoleOnPlayerOut() {
 	playerInOrOut = 2;
     setTimeout(function() { playerInOrOut = 0; }, 100);
     updateTeams();
-	players = room.getPlayerList().filter((player) => player.id != 0 && player.id != 1);
+	players = room.getPlayerList().filter((player) => player.id != 0);
 	if (room.getScores() != null) {
 		var scores = room.getScores();
 		if (players.length >= 2 * maxTeamSize && scores.time >= (5/6) * game.scores.timeLimit && teamR.length != teamB.length) {
@@ -611,7 +611,7 @@ function getSpecList() {
 
 function getLastTouchOfTheBall() {
 	const ballPosition = room.getBallPosition();
-	players = room.getPlayerList().filter((player) => player.id != 0 && player.id != 1);
+	players = room.getPlayerList().filter((player) => player.id != 0);
 	for (var i = 0; i < players.length; i++) {
 		if (players[i].position != null) {
 			var distanceToBall = pointDistance(players[i].position, ballPosition);
@@ -807,7 +807,7 @@ room.onPlayerJoin = function(player) {
 }
 
 room.onPlayerTeamChange = function(changedPlayer, byPlayer) {
-	if (changedPlayer.id == 0 || changedPlayer.id == 1) {
+	if (changedPlayer.id == 0) {
 		room.setPlayerTeam(0, Team.SPECTATORS);
 		return;
 	}
@@ -1243,7 +1243,7 @@ room.onGameStop = function(byPlayer) {
 		if (playerInOrOut != 0) {
 			return;
 		}
-		players = room.getPlayerList().filter((player) => player.id != 0 && player.id != 1);
+		players = room.getPlayerList().filter((player) => player.id != 0);
 		if (inChooseMode) {
 			if (players.length == 2 * maxTeamSize) {
 				inChooseMode = false;
