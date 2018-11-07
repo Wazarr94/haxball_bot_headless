@@ -797,11 +797,13 @@ setInterval(function() {
 
 /* EVENTS */
 
+/* PLAYER MOVEMENT */
+
 room.onPlayerJoin = function(player) {
     updateRoleOnPlayerIn();
 	extendedP.push([player.id, player.auth, player.conn, false, 0, 0, false]);
 	room.sendChat("[PV] 👋 Welcome " + player.name + " ! Type '!help' to see the commands.", player.id);
-	if (localStorage.getItem(player.auth) != null) {
+	if (localStorage.getItem(player.auth) != null && JSON.parse(localStorage.getItem(player.auth).length).length == 12) {
 		room.sendChat(player.name + " automatically logged in !");
 	}
 }
@@ -890,6 +892,8 @@ room.onPlayerKicked = function(kickedPlayer, reason, ban, byPlayer) {
 		banList.push([kickedPlayer.name, kickedPlayer.id]);
 	}
 }
+
+/* PLAYER ACTIVITY */
 
 room.onPlayerChat = function(player, message) {
 	message = message.split(" ");
@@ -1211,6 +1215,19 @@ room.onPlayerActivity = function(player) {
 	getActivity(player) = 0;
 }
 
+room.onPlayerBallKick = function(player) {
+	if (lastPlayersTouched[0] == null || player.id != lastPlayersTouched[0].id) {
+		if (!activePlay) {
+			activePlay = true;
+		}
+		lastTeamTouched = player.team;
+		lastPlayersTouched[1] = lastPlayersTouched[0];
+		lastPlayersTouched[0] = player;
+	}
+}
+
+/* GAME MANAGEMENT */
+
 room.onGameStart = function(byPlayer) {
 	game = new Game(Date.now(), room.getScores(), []);
 	countAFK = true;
@@ -1394,16 +1411,7 @@ room.onPositionsReset = function() {
 	lastPlayersTouched = [null, null];
 }
 
-room.onPlayerBallKick = function(player) {
-	if (lastPlayersTouched[0] == null || player.id != lastPlayersTouched[0].id) {
-        if (!activePlay) {
-            activePlay = true;
-        }
-        lastTeamTouched = player.team;
-		lastPlayersTouched[1] = lastPlayersTouched[0];
-		lastPlayersTouched[0] = player;
-	}
-}
+/* MISCELLANEOUS */
 
 room.onPlayerAdminChange = function(changedPlayer, byPlayer) {
 }
