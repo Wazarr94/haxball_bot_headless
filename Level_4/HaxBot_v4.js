@@ -2,30 +2,6 @@
 
 Stats: "Auth" : '["0-Games", "1-Wins", "2-Draws", "3-Losses", "4-Winrate", "5-Goals", "6-Assists", "7-GK", "8-CS", "9-CS%", "10-Nick", "11-PW"]'
 
-To save localStorage :
-function getLocalStorage() {
-	var tableau = [];
-    Object.keys(localStorage).forEach(function(key) {
-		tableau.push([key, localStorage.getItem(key)]);
-	});
-	var string = "[";
-	for (var i = 0 ; i < data.length ; i++) {
-		string += "['" + data[i][0] + "', '" + data[i][1] + "'], ";
-	}
-	string = string.substring(0,string.length - 2);
-	string += "]";
-	return string;
-}
-Copy what's given in the console
-To load localStorage : 
-function writeLocalStorage(data) {
-    for (var i = 0 ; i < data.length ; i ++) {
-		if (!["player_name", "view_mode", "geo", "avatar", "player_auth_key"].includes(data[i][0])) {
-			localStorage.setItem(data[i][0], data[i][1]);
-		}
-	}
-}
-
 */
 
 /* VARIABLES */
@@ -57,20 +33,20 @@ const playerRadius = 15;
 var ballRadius = 10;
 const triggerDistance = playerRadius + ballRadius + 0.01;
 var aloneMap = '{"name":"Classic NO GOAL from HaxMaps","width":420,"height":200,"spawnDistance":170,"bg":{"type":"grass","width":370,"height":170,"kickOffRadius":75,"cornerRadius":0},"vertexes":[{"x":-370,"y":170,"trait":"ballArea"},{"x":-370,"y":64,"trait":"ballArea"},{"x":-370,"y":-64,"trait":"ballArea"},{"x":-370,"y":-170,"trait":"ballArea"},{"x":370,"y":170,"trait":"ballArea"},{"x":370,"y":64,"trait":"ballArea"},{"x":370,"y":-64,"trait":"ballArea"},{"x":370,"y":-170,"trait":"ballArea"},{"x":0,"y":200,"trait":"kickOffBarrier"},{"x":0,"y":75,"trait":"kickOffBarrier"},{"x":0,"y":-75,"trait":"kickOffBarrier"},{"x":0,"y":-200,"trait":"kickOffBarrier"},{"x":-380,"y":-64,"trait":"goalNet"},{"x":-400,"y":-44,"trait":"goalNet"},{"x":-400,"y":44,"trait":"goalNet"},{"x":-380,"y":64,"trait":"goalNet"},{"x":380,"y":-64,"trait":"goalNet"},{"x":400,"y":-44,"trait":"goalNet"},{"x":400,"y":44,"trait":"goalNet"},{"x":380,"y":64,"trait":"goalNet"}],"segments":[{"v0":0,"v1":1,"trait":"ballArea"},{"v0":2,"v1":3,"trait":"ballArea"},{"v0":4,"v1":5,"trait":"ballArea"},{"v0":6,"v1":7,"trait":"ballArea"},{"v0":12,"v1":13,"trait":"goalNet","curve":-90},{"v0":13,"v1":14,"trait":"goalNet"},{"v0":14,"v1":15,"trait":"goalNet","curve":-90},{"v0":16,"v1":17,"trait":"goalNet","curve":90},{"v0":17,"v1":18,"trait":"goalNet"},{"v0":18,"v1":19,"trait":"goalNet","curve":90},{"v0":8,"v1":9,"trait":"kickOffBarrier"},{"v0":9,"v1":10,"trait":"kickOffBarrier","curve":180,"cGroup":["blueKO"]},{"v0":9,"v1":10,"trait":"kickOffBarrier","curve":-180,"cGroup":["redKO"]},{"v0":10,"v1":11,"trait":"kickOffBarrier"}],"goals":[],"discs":[{"pos":[-370,64],"trait":"goalPost","color":"FFCCCC"},{"pos":[-370,-64],"trait":"goalPost","color":"FFCCCC"},{"pos":[370,64],"trait":"goalPost","color":"CCCCFF"},{"pos":[370,-64],"trait":"goalPost","color":"CCCCFF"}],"planes":[{"normal":[0,1],"dist":-170,"trait":"ballArea"},{"normal":[0,-1],"dist":-170,"trait":"ballArea"},{"normal":[0,1],"dist":-200,"bCoef":0.1},{"normal":[0,-1],"dist":-200,"bCoef":0.1},{"normal":[1,0],"dist":-420,"bCoef":0.1},{"normal":[-1,0],"dist":-420,"bCoef":0.1}],"traits":{"ballArea":{"vis":false,"bCoef":1,"cMask":["ball"]},"goalPost":{"radius":8,"invMass":0,"bCoef":0.5},"goalNet":{"vis":true,"bCoef":0.1,"cMask":["ball"]},"kickOffBarrier":{"vis":false,"bCoef":0.1,"cGroup":["redKO","blueKO"],"cMask":["red","blue"]}}}'
-var classicMap = '';
-var bigMap = '';
+var classicMap = ''; // Insert your map for 1v1 and 2v2 here. To get minimum file size, here are the instructions : 1. Download the map 2. Go to https://cssminifier.com 3. Paste the result
+var bigMap = ''; // Read above
 
 /* OPTIONS */
 
 var afkLimit = 12;
 var drawTimeLimit = Infinity;
-var maxTeamSize = 4;
+var maxTeamSize = 4; // This works for 2, 3 or 4
 var slowMode = 0;
 
 /* PLAYERS */
 
 var players;
-var extendedP = []; // ["0-ID", "1-Auth", "2-Conn", "3-AFK", "4-Activity", "5-GK", "6-Mute"]
+var extendedP = []; // Getting an extension for players : ["0-ID", "1-Auth", "2-Conn", "3-AFK", "4-Activity", "5-GK", "6-Mute"]
 const eP = {
 	ID: 0,
 	AUTH: 1,
@@ -87,12 +63,12 @@ var teamS;
 /* GAME */
 
 var lastTeamTouched;
-var lastPlayersTouched;
-var countAFK = false;
-var activePlay = false;
+var lastPlayersTouched; // These allow to get good goal notifications (it should be lastPlayersKicked, waiting on a next update to get better track of shots on target)
+var countAFK = false; // Created to get better track of activity
+var activePlay = false; // Created to get better track of the possession
 var goldenGoal = false;
-var SMSet = new Set();
-var banList = [];
+var SMSet = new Set(); // Set created to get slow mode which is useful in chooseMode
+var banList = []; // Getting track of the bans, so we can unban ppl if we want
 
 /* STATS */
 
@@ -100,14 +76,16 @@ var game;
 var GKList = ["",""];
 var Rposs = 0;
 var Bposs = 0;
-var point = [{"x": 0, "y": 0}, {"x": 0, "y": 0}];
+var point = [{"x": 0, "y": 0}, {"x": 0, "y": 0}]; // created to get ball speed
 var ballSpeed;
 var lastWinner = Team.SPECTATORS;
 var streak = 0;
+var allBlues = []; // This is to count the players who should be counted for the stats. This includes players who left after the game has started, doesn't include those who came too late or ...
+var allReds = []; // ... those who came in a very unequal game.
 
 /* BALANCE & CHOOSE */
 
-var inChooseMode = false;
+var inChooseMode = false; // This variable enables to distinguish the 2 phases of playing and choosing which should be dealt with very differently
 var redCaptainChoice = "";
 var blueCaptainChoice = "";
 var chooseTime = 20;
@@ -115,9 +93,9 @@ var timeOutCap;
 
 /* AUXILIARY */
 
-var checkTimeVariable = 0;
-var statNumber = 0;
-var playerInOrOut = 0;
+var checkTimeVariable = 0; // This is created so the chat doesn't get spammed when a game is ending via timeLimit
+var statNumber = 0; // This allows the room to be given stat information every X minutes
+var playerInOrOut = 0; // This variable with the one below helps distinguish the cases where games are stopped because they have finish to the ones where games are stopped due to player movements or resetting teams
 var resettingTeams = false;
 
 room.setCustomStadium(aloneMap);
@@ -141,21 +119,11 @@ function Game(date, scores, goals) {
 
 /* AUXILIARY FUNCTIONS */
 
-function getRandomInt(max) { // return random number from 0 to max-1
+function getRandomInt(max) { // returns a random number from 0 to max-1
 	return Math.floor(Math.random() * Math.floor(max)); 
 }
 
-function arrayMin(arr) {
-	var len = arr.length, min = Infinity;
-	while (len--) {
-		if (arr[len] < min) {
-			min = arr[len];
-	  	}
-	}
-	return min;
-}
-
-function getTime(scores) {
+function getTime(scores) { // returns the current time of the game
 	return "[" + Math.floor(Math.floor(scores.time/60)/10).toString() + Math.floor(Math.floor(scores.time/60)%10).toString() + ":" + Math.floor(Math.floor(scores.time - (Math.floor(scores.time/60) * 60))/10).toString() + Math.floor(Math.floor(scores.time - (Math.floor(scores.time/60) * 60))%10).toString() + "]"
 }
 
@@ -268,7 +236,7 @@ function redToBlueBtn() {
 
 /* GAME FUNCTIONS */
 
-function checkTime() {
+function checkTime() { // checks when timeLimit is reached, when 1 minute away from drawLimit and when drawLimit is reached
 	const scores = room.getScores();
 	game.scores = scores;
 	if (Math.abs(scores.time - scores.timeLimit) <= 0.01) {
@@ -310,7 +278,7 @@ function checkTime() {
 	}
 }
 
-function endGame(winner) { // no stopGame() function in it
+function endGame(winner) { // handles the end of a game : no stopGame function inside
 	if (players.length >= 2 * maxTeamSize - 1) {
 		inChooseMode = true;
 	}
@@ -365,14 +333,14 @@ function resumeGame() {
 
 /* PLAYER FUNCTIONS */
 
-function updateTeams() {
+function updateTeams() { // update the players' list and all the teams' list
 	players = room.getPlayerList().filter((player) => player.id != 0);
 	teamR = players.filter(p => p.team === Team.RED);
 	teamB = players.filter(p => p.team === Team.BLUE);
 	teamS = players.filter(p => p.team === Team.SPECTATORS);
 }
 
-function handleInactivity() {
+function handleInactivity() { // handles inactivity : players will be kicked after afkLimit
 	if (countAFK && players.length > 1) {
 		for (var i = 0; i < teamR.length ; i++) {
 			getActivity(teamR[i])++;
@@ -420,7 +388,6 @@ function getMute(player) {
 function updateRoleOnPlayerIn() {
 	playerInOrOut = 1;
 	setTimeout(function() { playerInOrOut = 0; }, 100);
-	players = room.getPlayerList().filter((player) => player.id != 0);
 	updateTeams();
 	if (inChooseMode) {
 		if (players.length == 6) {
@@ -435,7 +402,6 @@ function updateRoleOnPlayerOut() {
 	playerInOrOut = 2;
     setTimeout(function() { playerInOrOut = 0; }, 100);
     updateTeams();
-	players = room.getPlayerList().filter((player) => player.id != 0);
 	if (room.getScores() != null) {
 		var scores = room.getScores();
 		if (players.length >= 2 * maxTeamSize && scores.time >= (5/6) * game.scores.timeLimit && teamR.length != teamB.length) {
@@ -820,7 +786,8 @@ room.onPlayerTeamChange = function(changedPlayer, byPlayer) {
 		}
 	}
 	if (changedPlayer.team == Team.SPECTATORS) {
-		updateLists(Math.max(teamR.findIndex((p) => p.id == changedPlayer.id), teamB.findIndex((p) => p.id == changedPlayer.id), teamS.findIndex((p) => p.id == changedPlayer.id)), changedPlayer.team);
+		getActivity(changedPlayer) = 0;
+		getGK(changedPlayer) = 0;
 	}
 	updateTeams();
 	if (inChooseMode && resettingTeams == false && byPlayer.id == 0) {
@@ -883,7 +850,8 @@ room.onPlayerTeamChange = function(changedPlayer, byPlayer) {
 }
 
 room.onPlayerLeave = function(player) {
-    updateLists(Math.max(teamR.findIndex((p) => p.id == player.id), teamB.findIndex((p) => p.id == player.id), teamS.findIndex((p) => p.id == player.id)), player.team);
+	getActivity(player) = 0;
+	getGK(player) = 0;
     updateRoleOnPlayerOut();
 }
 
@@ -901,9 +869,9 @@ room.onPlayerChat = function(player, message) {
 		getActivity(player) = 0;
 	}
 	if (message[0].toLowerCase() == "!help") {
-		room.sendChat("[PV] Player commands : !me, !register <pw>, !games, !wins, !goals, !assists, !cs. PW must be > 4 characters.", player.id);
+		room.sendChat("[PV] Player commands : !register <pw>, !me, !games, !wins, !goals, !assists, !cs. PW must be > 4 characters.", player.id);
 		if (player.admin) {
-			room.sendChat("[PV] Admin : !balance, !mute <team> <position> <duration = 3>, !unmute all/<nick>, !clearbans, !slowmode <duration>", player.id);
+			room.sendChat("[PV] Admin : !mute <team> <position> <duration = 3>, !unmute all/<nick>, !clearbans, !slowmode <duration>, !endslow", player.id);
 		}
 	}
 	if (message[0].toLowerCase() == "!register") {
@@ -942,6 +910,7 @@ room.onPlayerChat = function(player, message) {
 		var tableau = [];
 		Object.keys(localStorage).forEach(function(key) { if (!["player_name", "view_mode", "geo", "avatar", "player_auth_key"].includes(key)) { tableau.push([(JSON.parse(localStorage.getItem(key))[10]),(JSON.parse(localStorage.getItem(key))[0])]); } });
 		if (tableau.length < 5) {
+			room.sendChat("Not enough games played yet.", player.id);
 			return false;
 		}
 		tableau.sort(function(a, b) { return b[1] - a[1]; });
@@ -951,6 +920,7 @@ room.onPlayerChat = function(player, message) {
 		var tableau = [];
 		Object.keys(localStorage).forEach(function(key) { if (!["player_name", "view_mode", "geo", "avatar", "player_auth_key"].includes(key)) { tableau.push([(JSON.parse(localStorage.getItem(key))[10]),(JSON.parse(localStorage.getItem(key))[1])]); } });
 		if (tableau.length < 5) {
+			room.sendChat("Not enough games played yet.", player.id);
 			return false;
 		}
 		tableau.sort(function(a, b) { return b[1] - a[1]; });
@@ -960,6 +930,7 @@ room.onPlayerChat = function(player, message) {
 		var tableau = [];
 		Object.keys(localStorage).forEach(function(key) { if (!["player_name", "view_mode", "geo", "avatar", "player_auth_key"].includes(key)) { tableau.push([(JSON.parse(localStorage.getItem(key))[10]),(JSON.parse(localStorage.getItem(key))[5])]); } });
 		if (tableau.length < 5) {
+			room.sendChat("Not enough games played yet.", player.id);
 			return false;
 		}
 		tableau.sort(function(a, b) { return b[1] - a[1]; });
@@ -969,6 +940,7 @@ room.onPlayerChat = function(player, message) {
 		var tableau = [];
 		Object.keys(localStorage).forEach(function(key) { if (!["player_name", "view_mode", "geo", "avatar", "player_auth_key"].includes(key)) { tableau.push([(JSON.parse(localStorage.getItem(key))[10]),(JSON.parse(localStorage.getItem(key))[6])]); } });
 		if (tableau.length < 5) {
+			room.sendChat("Not enough games played yet.", player.id);
 			return false;
 		}
 		tableau.sort(function(a, b) { return b[1] - a[1]; });
@@ -978,6 +950,7 @@ room.onPlayerChat = function(player, message) {
 		var tableau = [];
 		Object.keys(localStorage).forEach(function(key) { if (!["player_name", "view_mode", "geo", "avatar", "player_auth_key"].includes(key)) { tableau.push([(JSON.parse(localStorage.getItem(key))[10]),(JSON.parse(localStorage.getItem(key))[8])]); } });
 		if (tableau.length < 5) {
+			room.sendChat("Not enough games played yet.", player.id);
 			return false;
 		}
 		tableau.sort(function(a, b) { return b[1] - a[1]; });
@@ -1260,7 +1233,7 @@ room.onGameStop = function(byPlayer) {
 		if (playerInOrOut != 0) {
 			return;
 		}
-		players = room.getPlayerList().filter((player) => player.id != 0);
+		updateTeams();
 		if (inChooseMode) {
 			if (players.length == 2 * maxTeamSize) {
 				inChooseMode = false;
