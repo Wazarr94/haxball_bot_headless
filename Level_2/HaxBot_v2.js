@@ -92,6 +92,40 @@ function pointDistance(p1, p2) {
 	return Math.sqrt(d1 * d1 + d2 * d2);
 }
 
+/* BUTTONS */
+
+function blueToSpecBtn() {
+	resettingTeams = true;
+	setTimeout(function() { resettingTeams = false; }, 100);
+	for (var i = 0; i < teamB.length; i++) {
+		room.setPlayerTeam(teamB[teamB.length - 1 - i].id, Team.SPECTATORS);
+	}
+}
+
+function redToSpecBtn() {
+	resettingTeams = true;
+	setTimeout(function() { resettingTeams = false; }, 100);
+	for (var i = 0; i < teamR.length; i++) {
+		room.setPlayerTeam(teamR[teamR.length - 1 - i].id, Team.SPECTATORS);
+	}
+}
+
+function blueToRedBtn() {
+	resettingTeams = true;
+	setTimeout(() => { resettingTeams = false; }, 100);
+	for (var i = 0; i < teamB.length; i++) {
+		room.setPlayerTeam(teamB[i].id, Team.RED);
+	}
+}
+
+function redToBlueBtn() {
+	resettingTeams = true;
+	setTimeout(() => { resettingTeams = false; }, 100);
+	for (var i = 0; i < teamR.length; i++) {
+		room.setPlayerTeam(teamR[i].id, Team.BLUE);
+	}
+}
+
 /* GAME FUNCTIONS */
 
 function checkTime() {
