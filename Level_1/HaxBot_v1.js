@@ -85,11 +85,11 @@ function checkTime() {
 				setTimeout(() => { checkTimeVariable = false; }, 10);
 				if (scores.red > scores.blue) {
 					endGame(Team.RED);
-					setTimeout(function() { room.stopGame(); }, 2000);
+					setTimeout(() => { room.stopGame(); }, 2000);
 				}
 				else {
 					endGame(Team.BLUE);
-					setTimeout(function() { room.stopGame(); }, 2000);
+					setTimeout(() => { room.stopGame(); }, 2000);
 				}
 			}
 			return;
@@ -211,6 +211,7 @@ room.onPlayerBallKick = function(player) {
 /* GAME MANAGEMENT */
 
 room.onGameStart = function(byPlayer) {
+	goldenGoal = false;
 	lastPlayersTouched = [null, null];
 }
 
@@ -239,7 +240,7 @@ room.onTeamGoal = function(team) {
 	if (scores.red == scores.scoreLimit || scores.blue == scores.scoreLimit || goldenGoal == true) {
 		endGame(team);
 		goldenGoal = false;
-		setTimeout(function() { room.stopGame(); }, 1000);
+		setTimeout(() => { room.stopGame(); }, 1000);
 	}
 }
 
