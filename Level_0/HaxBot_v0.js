@@ -70,6 +70,9 @@ room.onPositionsReset = function() {
 
 /* MISCELLANEOUS */
 
+room.onRoomLink = function(url) {
+}
+
 room.onPlayerAdminChange = function(changedPlayer, byPlayer) {
 }
 
