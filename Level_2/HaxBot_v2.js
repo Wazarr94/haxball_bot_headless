@@ -103,11 +103,11 @@ function checkTime() {
 				setTimeout(() => { checkTimeVariable = false; }, 10);
 				if (scores.red > scores.blue) {
 					endGame(Team.RED);
-					setTimeout(function() { room.stopGame(); }, 2000);
+					setTimeout(() => { room.stopGame(); }, 2000);
 				}
 				else {
 					endGame(Team.BLUE);
-					setTimeout(function() { room.stopGame(); }, 2000);
+					setTimeout(() => { room.stopGame(); }, 2000);
 				}
 			}
 			return;
@@ -390,6 +390,22 @@ room.onGameStart = function(byPlayer) {
 }
 
 room.onGameStop = function(byPlayer) {
+    if (byPlayer.id == 0) {
+        if (lastWinner == Team.RED) {
+            blueToSpecBtn();
+            setTimeout(() => { room.setPlayerTeam(teamS[0].id, Team.BLUE); }, 100);
+        }
+        else if (lastWinner == Team.BLUE) {
+			redToSpecBtn();
+			blueToRedBtn();
+            setTimeout(() => { room.setPlayerTeam(teamS[0].id, Team.BLUE); }, 100);
+        }
+        else {
+            redToSpecBtn();
+            blueToSpecBtn();
+            setTimeout(() => { room.setPlayerTeam(teamS[0].id, Team.RED); room.setPlayerTeam(teamS[0].id, Team.BLUE); }, 100);
+        }
+    }
 }
 
 room.onGamePause = function(byPlayer) {
@@ -414,7 +430,7 @@ room.onTeamGoal = function(team) {
 	if (scores.red == scores.scoreLimit || scores.blue == scores.scoreLimit || goldenGoal == true) {
 		endGame(team);
 		goldenGoal = false;
-		setTimeout(function() { room.stopGame(); }, 1000);
+		setTimeout(() => { room.stopGame(); }, 1000);
 	}
 }
 
