@@ -15,7 +15,7 @@ const Team = {
 	BLUE: 2
 };
 
-const room = HBInit({ roomName: roomName, maxPlayers: maxPlayers, public: roomPublic, playerName: botName, geo: geo[0] });
+const room = HBInit({roomName: roomName, maxPlayers: maxPlayers, public: roomPublic, playerName: botName, geo: geo[0]});
 
 room.setScoreLimit(scoreLimit);
 room.setTimeLimit(timeLimit);
