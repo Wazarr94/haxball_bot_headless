@@ -185,7 +185,7 @@ room.onPlayerKicked = function(kickedPlayer, reason, ban, byPlayer) {
 
 room.onPlayerChat = function(player, message) {
 	message = message.split(" ");
-	if (message[0] == '!claim') {
+	if (message[0].toLowerCase() == '!claim') {
 		if (message[1] == adminPassword) {
 			room.setPlayerAdmin(player.id, true);
 			adminPassword = 100 + getRandomInt(900);
