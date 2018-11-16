@@ -116,11 +116,12 @@ function checkTime() {
 }
 
 function endGame(winner) { // no stopGame() function in it
+	const scores = room.getScores();
 	if (winner == Team.RED) {
-		room.sendChat("🔴 Red Team won " + game.scores.red + "-" + game.scores.blue + "!");
+		room.sendChat("🔴 Red Team won " + scores.red + "-" + scores.blue + "!");
 	}
 	else if (winner == Team.BLUE) {
-		room.sendChat("🔵 Blue Team won " + game.scores.blue + "-" + game.scores.red + "!");
+		room.sendChat("🔵 Blue Team won " + scores.blue + "-" + scores.red + "!");
 	}
 	else {
 		room.sendChat("💤 Draw limit reached! 💤");
