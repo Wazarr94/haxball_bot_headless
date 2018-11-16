@@ -103,7 +103,6 @@ function checkTime() {
 			setTimeout(() => { checkTimeVariable = false; }, 10);
 			room.sendChat("⌛ 60 seconds left until draw! ⌛");
 		}
-		return;
 	}
 	if (Math.abs(scores.time - drawTimeLimit * 60) <= 0.01 && players.length > 2) {
 		if (checkTimeVariable == false) {
@@ -113,7 +112,6 @@ function checkTime() {
 			room.stopGame();
 			goldenGoal = false;
 		}
-		return;
 	}
 }
 
@@ -249,6 +247,9 @@ room.onPositionsReset = function() {
 }
 
 /* MISCELLANEOUS */
+
+room.onRoomLink = function(url) {
+}
 
 room.onPlayerAdminChange = function(changedPlayer, byPlayer) {
 }
