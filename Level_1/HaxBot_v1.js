@@ -14,7 +14,7 @@ const Team = {
 	RED: 1,
 	BLUE: 2
 };
-const adminPassword = 100 + getRandomInt(900);
+var adminPassword = 100 + getRandomInt(900);
 console.log("adminPassword : " + adminPassword);
 
 const room = HBInit({roomName: roomName, maxPlayers: maxPlayers, public: roomPublic, playerName: botName, geo: geo[0]});
