@@ -94,6 +94,50 @@ function pointDistance(p1, p2) {
 
 /* BUTTONS */
 
+function topBtn() {
+	if (teamS.length == 0) {
+		return;
+	}
+	else {
+		if (teamR.length == teamB.length) {
+			if (teamS.length > 1) {
+				room.setPlayerTeam(teamS[0].id, Team.RED);
+				room.setPlayerTeam(teamS[1].id, Team.BLUE);
+			}
+			return;
+		}
+		else if (teamR.length < teamB.length) {
+			room.setPlayerTeam(teamS[0].id, Team.RED);
+		}
+		else {
+			room.setPlayerTeam(teamS[0].id, Team.BLUE);
+		}
+	}
+}
+
+function resetBtn() {
+	resettingTeams = true;
+	setTimeout(function() { resettingTeams = false; }, 100);
+	if (teamR.length <= teamB.length) {
+		for (var i = 0; i < teamR.length; i++) {
+			room.setPlayerTeam(teamB[teamB.length - 1 - i].id, Team.SPECTATORS);
+			room.setPlayerTeam(teamR[teamR.length - 1 - i].id, Team.SPECTATORS);
+		}
+		for (var i = teamR.length; i < teamB.length; i++) {
+			room.setPlayerTeam(teamB[teamB.length - 1 - i].id, Team.SPECTATORS);
+		}
+	}
+	else {
+		for (var i = 0; i < teamB.length; i++) {
+			room.setPlayerTeam(teamB[teamB.length - 1 - i].id, Team.SPECTATORS);
+			room.setPlayerTeam(teamR[teamR.length - 1 - i].id, Team.SPECTATORS);
+		}
+		for (var i = teamB.length; i < teamR.length; i++) {
+			room.setPlayerTeam(teamR[teamR.length - 1 - i].id, Team.SPECTATORS);
+		}
+	}
+}
+
 function blueToSpecBtn() {
 	resettingTeams = true;
 	setTimeout(function() { resettingTeams = false; }, 100);
@@ -155,7 +199,6 @@ function checkTime() {
 			setTimeout(() => { checkTimeVariable = false; }, 10);
 			room.sendChat("⌛ 60 seconds left until draw! ⌛");
 		}
-		return;
 	}
 	if (Math.abs(scores.time - drawTimeLimit * 60) <= 0.01 && players.length > 2) {
 		if (checkTimeVariable == false) {
@@ -165,7 +208,6 @@ function checkTime() {
 			room.stopGame();
 			goldenGoal = false;
 		}
-		return;
 	}
 }
 
@@ -173,8 +215,8 @@ function endGame(winner) { // no stopGame() function in it
 	const scores = room.getScores();
 	Rposs = Rposs/(Rposs+Bposs);
 	Bposs = 1 - Rposs;
+	lastWinner = winner;
 	if (winner == Team.RED) {
-		lastWinner = Team.RED;
 		streak++;
 		room.sendChat("🔴 Red Team won " + scores.red + "-" + scores.blue + " ! Current streak : " + streak + " 🏆");
 		room.sendChat("⭐ Possession : 🔴 " + (Rposs*100).toPrecision(3).toString() + "% : " + (Bposs*100).toPrecision(3).toString() + "% 🔵");
@@ -183,7 +225,6 @@ function endGame(winner) { // no stopGame() function in it
 		}
 	}
 	else if (winner == Team.BLUE) {
-		lastWinner = Team.BLUE;
 		streak = 1;
 		room.sendChat("🔵 Blue Team won " + scores.blue + "-" + scores.red + " ! Current streak : " + streak + " 🏆");
 		room.sendChat("⭐ Possession : 🔴 " + (Rposs*100).toPrecision(3).toString() + "% : " + (Bposs*100).toPrecision(3).toString() + "% 🔵");
@@ -192,7 +233,6 @@ function endGame(winner) { // no stopGame() function in it
 		}
 	}
 	else {
-		lastWinner = Team.SPECTATORS;
 		streak = 0;
 		room.sendChat("💤 Draw limit reached! 💤");
 		room.sendChat("⭐ Possession : 🔴 " + (Rposs*100).toPrecision(3).toString() + "% : " + (Bposs*100).toPrecision(3).toString() + "% 🔵");
@@ -218,6 +258,18 @@ function updateAdmins() {
 	var copie = []; 
 	players.forEach(function(element) { copie.push(element.id); });
 	room.setPlayerAdmin(arrayMin(copie), true); // Give admin to the player who's played the longest on the room
+}
+
+function updateList(number, team) {
+	if (room.getScores() != null) {
+		if (team == Team.RED) {
+			GKList = GKList.slice(0, number).concat(GKList.slice(number + 1, maxPlayers)).concat(0).concat(GKList.slice(maxPlayers, GKList.length));
+			
+		}
+		else if (team == Team.BLUE) {
+			GKList = GKList.slice(0, maxPlayers + number).concat(GKList.slice(maxPlayers + number + 1, GKList.length).concat(0));
+		}
+	}
 }
 
 /* STATS FUNCTIONS */
@@ -278,10 +330,14 @@ room.onPlayerTeamChange = function(changedPlayer, byPlayer) {
 		room.setPlayerTeam(0, Team.SPECTATORS);
 		return;
 	}
+	if (changedPlayer.team == Team.SPECTATORS) {
+		updateList(Math.max(teamR.findIndex((p) => p.id == changedPlayer.id), teamB.findIndex((p) => p.id == changedPlayer.id), teamS.findIndex((p) => p.id == changedPlayer.id)), changedPlayer.team);
+	}
 	updateTeams();
 }
 
 room.onPlayerLeave = function(player) {
+	updateList(Math.max(teamR.findIndex((p) => p.id == player.id), teamB.findIndex((p) => p.id == player.id), teamS.findIndex((p) => p.id == player.id)), player.team);
 	updateTeams();
 	updateAdmins();
 }
@@ -425,20 +481,18 @@ room.onGameStart = function(byPlayer) {
 
 room.onGameStop = function(byPlayer) {
     if (byPlayer.id == 0) {
+		updateTeams();
         if (lastWinner == Team.RED) {
             blueToSpecBtn();
-            setTimeout(() => { room.setPlayerTeam(teamS[0].id, Team.BLUE); }, 100);
         }
         else if (lastWinner == Team.BLUE) {
 			redToSpecBtn();
 			blueToRedBtn();
-            setTimeout(() => { room.setPlayerTeam(teamS[0].id, Team.BLUE); }, 100);
         }
         else {
-            redToSpecBtn();
-            blueToSpecBtn();
-            setTimeout(() => { room.setPlayerTeam(teamS[0].id, Team.RED); room.setPlayerTeam(teamS[0].id, Team.BLUE); }, 100);
+			resetBtn();
         }
+		setTimeout(() => { topBtn(); }, 100);
     }
 }
 
@@ -450,6 +504,7 @@ room.onGameUnpause = function(byPlayer) {
 
 room.onTeamGoal = function(team) {
 	const scores = room.getScores();
+	activePlay = false;
 	if (lastPlayersTouched[0] != null && lastPlayersTouched[0].team == team) {
 		if (lastPlayersTouched[1] != null && lastPlayersTouched[1].team == team) {
 			room.sendChat("⚽ " + getTime(scores) + " Goal by " + lastPlayersTouched[0].name + " ! Assist by " + lastPlayersTouched[1].name + ". Goal speed : " + ballSpeed.toPrecision(4).toString() + "km/h " + (team == Team.RED ? "🔴" : "🔵"));
@@ -473,6 +528,9 @@ room.onPositionsReset = function() {
 }
 
 /* MISCELLANEOUS */
+
+room.onRoomLink = function(url) {
+}
 
 room.onPlayerAdminChange = function(changedPlayer, byPlayer) {
 }
