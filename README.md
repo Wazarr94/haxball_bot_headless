@@ -5,7 +5,7 @@ It currently contains 5 levels, which all have their own specifications.
 
 ## Level 0
 
-It's the skeleton for the bot, if you want to start building your own bot alone, it's what you need to start your project.
+It's the skeleton for the bot, if you want to start building your own bot, it's what you need to start your project.
 
 ## Level 1
 
