@@ -7,21 +7,17 @@ const botName = "HaxBot";
 const maxPlayers = 12;
 const roomPublic = true;
 const geo = [{"code": "DE", "lat": 51.1, "lon": 10.4}, {"code": "FR", "lat": 46.2, "lon": 2.2}, {"code": "PL", "lat": 51.9, "lon": 19.1}, {"code": "GB", "lat": 55.3, "lon": -3.4}, {"code": "PT", "lat": 39.3, "lon": -8.2}];
+
+const room = HBInit({ roomName: roomName, maxPlayers: maxPlayers, public: roomPublic, playerName: botName, geo: geo[0] });
+
 const scoreLimit = 3;
 const timeLimit = 3;
-const Team = {
-	SPECTATORS: 0,
-	RED: 1,
-	BLUE: 2
-};
-var adminPassword = 100 + getRandomInt(900);
-console.log("adminPassword : " + adminPassword);
-
-const room = HBInit({roomName: roomName, maxPlayers: maxPlayers, public: roomPublic, playerName: botName, geo: geo[0]});
-
 room.setScoreLimit(scoreLimit);
 room.setTimeLimit(timeLimit);
 room.setTeamsLock(true);
+
+var adminPassword = 100 + getRandomInt(900);
+console.log("adminPassword : " + adminPassword);
 
 /* STADIUM */
 
@@ -36,6 +32,7 @@ var maxTeamSize = 4;
 
 /* PLAYERS */
 
+const Team = { SPECTATORS: 0, RED: 1, BLUE: 2 };
 var players;
 var teamR;
 var teamB;
@@ -72,7 +69,7 @@ function getRandomInt(max) { // return random number from 0 to max-1
 }
 
 function arrayMin(arr) {
-    var len = arr.length
+    var len = arr.length;
     var min = Infinity;
 	while (len--) {
 		if (arr[len] < min) {
@@ -162,31 +159,17 @@ function blueToRedBtn() {
 	}
 }
 
-function redToBlueBtn() {
-	resettingTeams = true;
-	setTimeout(() => { resettingTeams = false; }, 100);
-	for (var i = 0; i < teamR.length; i++) {
-		room.setPlayerTeam(teamR[i].id, Team.BLUE);
-	}
-}
-
 /* GAME FUNCTIONS */
 
 function checkTime() {
 	const scores = room.getScores();
-	if (Math.abs(scores.time - scores.timeLimit) <= 0.01) {
+	if (Math.abs(scores.time - scores.timeLimit) <= 0.01 && scores.timeLimit != 0) {
 		if (scores.red != scores.blue) {
 			if (checkTimeVariable == false) {
 				checkTimeVariable = true;
 				setTimeout(() => { checkTimeVariable = false; }, 10);
-				if (scores.red > scores.blue) {
-					endGame(Team.RED);
-					setTimeout(() => { room.stopGame(); }, 2000);
-				}
-				else {
-					endGame(Team.BLUE);
-					setTimeout(() => { room.stopGame(); }, 2000);
-				}
+				scores.red > scores.blue ? endGame(Team.RED) : endGame(Team.BLUE);
+				setTimeout(() => { room.stopGame(); }, 2000);
 			}
 			return;
 		}
@@ -276,7 +259,7 @@ function updateList(number, team) {
 
 function getLastTouchOfTheBall() {
 	const ballPosition = room.getBallPosition();
-	players = room.getPlayerList().filter((player) => player.id != 0 && player.id != 1);
+	updateTeams();
 	for (var i = 0; i < players.length; i++) {
 		if (players[i].position != null) {
 			var distanceToBall = pointDistance(players[i].position, ballPosition);
@@ -295,7 +278,7 @@ function getStats() { // gives possession, ball speed and GK of each team
 		var ballPosition = room.getBallPosition();
 		point[1] = point[0];
 		point[0] = ballPosition;
-		ballSpeed = (pointDistance(point[0], point[1])*60*60*60)/15000;
+		ballSpeed = (pointDistance(point[0], point[1]) * 60 * 60 * 60)/15000;
 		var k = [-1, Infinity];
 		for (var i = 0; i < teamR.length; i++) {
 			if (teamR[i].position.x < k[1]) {
@@ -349,24 +332,27 @@ room.onPlayerKicked = function(kickedPlayer, reason, ban, byPlayer) {
 
 room.onPlayerChat = function(player, message) {
 	message = message.split(" ");
-	if (message[0].toLowerCase() == '!help') {
+	if (["!help"].includes(message[0].toLowerCase())) {
 		room.sendChat("[PV] Admin commands: !mute <R/B/S> <team position> <duration = 3>, !unmute all/<nick>, !clearbans", player.id);
 	}
-	if (message[0].toLowerCase() == '!claim') {
+	else if (["!claim"].includes(message[0].toLowerCase())) {
 		if (message[1] == adminPassword) {
 			room.setPlayerAdmin(player.id, true);
 			adminPassword = 100 + getRandomInt(900);
 			console.log("adminPassword : " + adminPassword);
 		}
 	}
-	if (message[0].toLowerCase() == "!mute") {
+	else if (["!mute"].includes(message[0].toLowerCase())) {
 		if (player.admin) {
 			if (message.length == 3 || message.length == 4) {
 				if (["R","B","S"].includes(message[1])) {
 					var timeOut;
 					if (message[1] == "R") {
 						if (!Number.isNaN(Number.parseInt(message[2]))) {
-							if (Number.parseInt(message[2]) <= teamR.length || Number.parseInt(message[2]) > 0) {
+							if (Number.parseInt(message[2]) <= teamR.length && Number.parseInt(message[2]) > 0) {
+								if (teamR[Number.parseInt(message[2]) - 1].admin || muteList.filter((p) => p == teamR[Number.parseInt(message[2]) - 1].name).length > 0) {
+									return false;
+								}
 								if (message.length == 4) {
 									if (!Number.isNaN(Number.parseInt(message[3]))) {
 										if (Number.parseInt(message[3]) > 0) {
@@ -385,7 +371,10 @@ room.onPlayerChat = function(player, message) {
 					}
 					if (message[1] == "B") {
 						if (!Number.isNaN(Number.parseInt(message[2]))) {
-							if (Number.parseInt(message[2]) <= teamB.length || Number.parseInt(message[2]) > 0) {
+							if (Number.parseInt(message[2]) <= teamB.length && Number.parseInt(message[2]) > 0) {
+								if (teamB[Number.parseInt(message[2]) - 1].admin || muteList.filter((p) => p == teamB[Number.parseInt(message[2]) - 1].name).length > 0) {
+									return false;
+								}
 								if (message.length == 4) {
 									if (!Number.isNaN(Number.parseInt(message[3]))) {
 										if (Number.parseInt(message[3]) > 0) {
@@ -404,7 +393,10 @@ room.onPlayerChat = function(player, message) {
 					}
 					if (message[1] == "S") {
 						if (!Number.isNaN(Number.parseInt(message[2]))) {
-							if (Number.parseInt(message[2]) <= teamS.length || Number.parseInt(message[2]) > 0) {
+							if (Number.parseInt(message[2]) <= teamS.length && Number.parseInt(message[2]) > 0) {
+								if (teamS[Number.parseInt(message[2]) - 1].admin || muteList.filter((p) => p == teamS[Number.parseInt(message[2]) - 1].name).length > 0) {
+									return false;
+								}
 								if (message.length == 4) {
 									if (!Number.isNaN(Number.parseInt(message[3]))) {
 										if (Number.parseInt(message[3]) > 0) {
@@ -425,7 +417,7 @@ room.onPlayerChat = function(player, message) {
 			}
 		}
     }
-    if (message[0].toLowerCase() == "!unmute") {
+    else if (["!unmute"].includes(message[0].toLowerCase())) {
 		if (player.admin) {
 			if (message.length == 2 && message[1] == "all") {
 				muteList = [];
@@ -436,16 +428,20 @@ room.onPlayerChat = function(player, message) {
 				for (var i = 1 ; i < message.length ; i++) {
 					name += message[i] + " ";
 				}
-				name = name.substring(0,name.length - 1);
+				name = name.substring(0, name.length - 1);
+				muteList.length != muteList.filter((p) => p != name).length ? room.sendChat(name + " has been unmuted.") : null;
 				muteList = muteList.filter((p) => p != name);
 			}
 		}
     }
-	if (message[0].toLowerCase() == "!clearbans") {
+	else if (["!clearbans"].includes(message[0].toLowerCase())) {
 		if (player.admin) {
 			room.clearBans();
 			room.sendChat("Bans cleared");
 		}
+	}
+	else if (["!bb, !bye, !cya, !gn"].includes(message[0].toLowerCase())) {
+		room.kickPlayer(player.id, "Bye !", false);
 	}
 	if (message[0][0] == "!") {
 		return false;
@@ -516,7 +512,7 @@ room.onTeamGoal = function(team) {
 	else {
 		room.sendChat("😂 " + getTime(scores) + " Own Goal by " + lastPlayersTouched[0].name + " ! Goal speed : " + ballSpeed.toPrecision(4).toString() + "km/h " + (team == Team.RED ? "🔴" : "🔵"));
 	}
-	if (scores.red == scores.scoreLimit || scores.blue == scores.scoreLimit || goldenGoal == true) {
+	if (scores.scoreLimit != 0 && (scores.red == scores.scoreLimit || scores.blue == scores.scoreLimit || goldenGoal == true)) {
 		endGame(team);
 		goldenGoal = false;
 		setTimeout(() => { room.stopGame(); }, 1000);
@@ -533,6 +529,10 @@ room.onRoomLink = function(url) {
 }
 
 room.onPlayerAdminChange = function(changedPlayer, byPlayer) {
+	if (muteList.includes(changedPlayer.name) && changedPlayer.admin) {
+		room.sendChat(changedPlayer.name + " has been unmuted.");
+		muteList = muteList.filter((p) => p != changedPlayer.name);
+	}
 }
 
 room.onStadiumChange = function(newStadiumName, byPlayer) {
@@ -540,5 +540,6 @@ room.onStadiumChange = function(newStadiumName, byPlayer) {
 
 room.onGameTick = function() {
 	checkTime();
+	getLastTouchOfTheBall();
 	getStats();
 }
