@@ -7,21 +7,17 @@ const botName = "HaxBot";
 const maxPlayers = 12;
 const roomPublic = true;
 const geo = [{"code": "DE", "lat": 51.1, "lon": 10.4}, {"code": "FR", "lat": 46.2, "lon": 2.2}, {"code": "PL", "lat": 51.9, "lon": 19.1}, {"code": "GB", "lat": 55.3, "lon": -3.4}, {"code": "PT", "lat": 39.3, "lon": -8.2}];
+
+const room = HBInit({ roomName: roomName, maxPlayers: maxPlayers, public: roomPublic, playerName: botName, geo: geo[0] });
+
 const scoreLimit = 3;
 const timeLimit = 3;
-const Team = {
-	SPECTATORS: 0,
-	RED: 1,
-	BLUE: 2
-};
-var adminPassword = 100 + getRandomInt(900);
-console.log("adminPassword : " + adminPassword);
-
-const room = HBInit({roomName: roomName, maxPlayers: maxPlayers, public: roomPublic, playerName: botName, geo: geo[0]});
-
 room.setScoreLimit(scoreLimit);
 room.setTimeLimit(timeLimit);
 room.setTeamsLock(true);
+
+var adminPassword = 100 + getRandomInt(900);
+console.log("adminPassword : " + adminPassword);
 
 /* OPTIONS */
 
@@ -29,6 +25,7 @@ var drawTimeLimit = Infinity;
 
 /* PLAYERS */
 
+const Team = { SPECTATORS: 0, RED: 1, BLUE: 2 };
 var players;
 var teamR;
 var teamB;
@@ -54,7 +51,7 @@ function getRandomInt(max) { // return random number from 0 to max-1
 }
 
 function arrayMin(arr) {
-    var len = arr.length
+    var len = arr.length;
     var min = Infinity;
 	while (len--) {
 		if (arr[len] < min) {
@@ -78,19 +75,18 @@ function pointDistance(p1, p2) {
 
 function checkTime() {
 	const scores = room.getScores();
-	if (Math.abs(scores.time - scores.timeLimit) <= 0.01) {
+	if (Math.abs(scores.time - scores.timeLimit) <= 0.01 && scores.timeLimit != 0) {
 		if (scores.red != scores.blue) {
 			if (checkTimeVariable == false) {
 				checkTimeVariable = true;
 				setTimeout(() => { checkTimeVariable = false; }, 10);
 				if (scores.red > scores.blue) {
 					endGame(Team.RED);
-					setTimeout(() => { room.stopGame(); }, 2000);
 				}
 				else {
 					endGame(Team.BLUE);
-					setTimeout(() => { room.stopGame(); }, 2000);
 				}
+				setTimeout(() => { room.stopGame(); }, 2000);
 			}
 			return;
 		}
@@ -152,7 +148,7 @@ function getStats() {
 	const ballPosition = room.getBallPosition();
 	point[1] = point[0];
 	point[0] = ballPosition;
-	ballSpeed = (pointDistance(point[0], point[1])*60*60*60)/15000;
+	ballSpeed = (pointDistance(point[0], point[1]) * 60 * 60 * 60)/15000;
 }
 
 /* EVENTS */
@@ -185,7 +181,7 @@ room.onPlayerKicked = function(kickedPlayer, reason, ban, byPlayer) {
 
 room.onPlayerChat = function(player, message) {
 	message = message.split(" ");
-	if (message[0].toLowerCase() == '!claim') {
+	if (["!claim"].includes(message[0].toLowerCase())) {
 		if (message[1] == adminPassword) {
 			room.setPlayerAdmin(player.id, true);
 			adminPassword = 100 + getRandomInt(900);
