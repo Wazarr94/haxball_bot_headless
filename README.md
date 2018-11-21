@@ -25,7 +25,7 @@ This level adds some pretty cool features.
  - GK of each team
  - Admins options : mute system and clearbans
 
-I'd recommand this over the Level 1 bot since it's still handy to use. The next levels will be more advanced.
+I recommand this over the Level 1 bot since it's still handy to use. The next levels will be more advanced.
 
 ## Level 3
 
@@ -36,11 +36,11 @@ This is where the more interesting stuff starts. Check the changelist below :
  - AFK system
  - Admin options : clearing specific bans via the ban list, slow mode
 
-These are pretty heavy changes. If you're interested in getting this bot (or the Level 4 bot), check out the Global Statistics System below. I'd recommand getting this bot if you're interested in having global statistics and still having people to handle the room. 
+These are pretty heavy changes. If you're interested in getting this bot (or the Level 4 bot), check out the Global Statistics System below. I recommand getting this bot if you're interested in having global statistics and still want to have people handling the room. 
 
 ## Level 4
 
-This is the final level, the bot becomes self sufficient.
+This is the final level, the bot becomes self sufficient :
 
  - End game handler
  - Choose system
