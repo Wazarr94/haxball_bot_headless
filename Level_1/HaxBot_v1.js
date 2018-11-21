@@ -80,12 +80,7 @@ function checkTime() {
 			if (checkTimeVariable == false) {
 				checkTimeVariable = true;
 				setTimeout(() => { checkTimeVariable = false; }, 10);
-				if (scores.red > scores.blue) {
-					endGame(Team.RED);
-				}
-				else {
-					endGame(Team.BLUE);
-				}
+				scores.red > scores.blue ? endGame(Team.RED) : endGame(Team.BLUE);
 				setTimeout(() => { room.stopGame(); }, 2000);
 			}
 			return;
