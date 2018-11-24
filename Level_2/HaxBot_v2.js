@@ -167,7 +167,7 @@ function checkTime() {
 		if (scores.red != scores.blue) {
 			if (checkTimeVariable == false) {
 				checkTimeVariable = true;
-				setTimeout(() => { checkTimeVariable = false; }, 10);
+				setTimeout(() => { checkTimeVariable = false; }, 3000);
 				scores.red > scores.blue ? endGame(Team.RED) : endGame(Team.BLUE);
 				setTimeout(() => { room.stopGame(); }, 2000);
 			}
