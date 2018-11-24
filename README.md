@@ -53,10 +53,9 @@ I'm working on this bot on a regular basis. However, some of the bots may have i
 The future changes will be : 
 
  - Finishing this MD
- - Enhancing the mute system -> DONE
+ - Testing the bots carefully
  - Creating the functions folder
- - Enhancing the goal attribution
- - Publishing the Real Soccer Bot
+ - Enhancing the goal attribution, statistics system and admin system
  - Using the haxilium project by @olegmisar
 
 On to explaining some systems which deserve to be detailed.
