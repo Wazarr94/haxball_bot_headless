@@ -2,7 +2,7 @@
 
 /* ROOM */
 
-const roomName = "Hello World";
+const roomName = "Room Name";
 const botName = "HaxBot";
 const maxPlayers = 12;
 const roomPublic = true;
