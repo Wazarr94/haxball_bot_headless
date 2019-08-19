@@ -49,6 +49,7 @@ var defaultColor = null;
 /* AUXILIARY */
 
 var checkTimeVariable = false;
+var checkDrawWarning = false;
 
 /* FUNCTIONS */
 
@@ -97,11 +98,12 @@ function checkTime() {
 	if (Math.abs(drawTimeLimit * 60 - scores.time - 60) <= 0.01 && players.length > 2) {
 		if (checkTimeVariable == false) {
 			checkTimeVariable = true;
+			checkDrawWarning = true;
 			setTimeout(() => { checkTimeVariable = false; }, 10);
 			if (activePlay) room.sendAnnouncement("⌛ 60 seconds left until draw !", null, announcementColor, "bold", null);
 		}
 	}
-	if (Math.abs(scores.time - drawTimeLimit * 60) <= 0.01 && players.length > 2) {
+	if (Math.abs(scores.time - drawTimeLimit * 60) <= 0.01 && players.length > 2 && checkDrawWarning) {
 		if (checkTimeVariable == false) {
 			checkTimeVariable = true;
 			setTimeout(() => { checkTimeVariable = false; }, 10);
@@ -225,6 +227,7 @@ room.onGameStart = function(byPlayer) {
 	goldenGoal = false;
 	activePlay = false;
 	lastPlayersTouched = [null, null];
+	checkDrawWarning = false;
 }
 
 room.onGameStop = function(byPlayer) {
