@@ -128,5 +128,5 @@ room.onPlayerTeamChange = function(changedPlayer, byPlayer) {
 }
 
 room.onPlayerLeave = function(player) {
-	updateTeams(); // After this line, if you try to access the player's properties, the room will crash whenever someone leaves
+	updateTeams();
 }
