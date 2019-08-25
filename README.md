@@ -1,4 +1,4 @@
-# HaxBall Bot
+# HaxBot
 
 This project has been designed to help people who do not know how to code to be able to host a room with multiple options.
 It currently contains 5 levels, which all have their own specifications.
