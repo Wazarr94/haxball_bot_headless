@@ -4,7 +4,7 @@
 
 const roomName = "Room Name";
 const maxPlayers = 12;
-const roomPublic = false;
+const roomPublic = true;
 const token = ""; // Insert token here
 if (typeof token === "string" && token.length === 39) var room = HBInit({ roomName: roomName, maxPlayers: maxPlayers, token: token, public: roomPublic, noPlayer: true });
 else var room = HBInit({ roomName: roomName, maxPlayers: maxPlayers, public: roomPublic, noPlayer: true });
