@@ -4,7 +4,7 @@
 
 const roomName = "Room Name";
 const maxPlayers = 12;
-const roomPublic = true;
+const roomPublic = false;
 const token = ""; // Insert token here
 if (typeof token === "string" && token.length === 39) var room = HBInit({ roomName: roomName, maxPlayers: maxPlayers, token: token, public: roomPublic, noPlayer: true });
 else var room = HBInit({ roomName: roomName, maxPlayers: maxPlayers, public: roomPublic, noPlayer: true });
@@ -141,12 +141,14 @@ function updateTeams() {
 	teamS = players.filter(p => p.team === Team.SPECTATORS);
 }
 
-function updateAdmins() { // gives admin to the player who's played the longest on the room if there's no admin
-	if (players.length != 0 && players.find((player) => player.admin) == null) {
-		let arrayID = players.map((player) => player.id);
+function updateAdmins(excludedPlayerID = 0) {
+	if (players.length != 0 && players.find((p) => p.admin) == null) {
+		let playerArray = players.filter((p) => p.id != excludedPlayerID);
+		let arrayID = playerArray.map((player) => player.id);
 		room.setPlayerAdmin(arrayMin(arrayID), true);
 	}
 }
+
 
 /* STATS FUNCTIONS */
 
@@ -195,7 +197,7 @@ room.onPlayerKicked = function(kickedPlayer, reason, ban, byPlayer) {
 room.onPlayerChat = function(player, message) {
 	message = message.split(/ +/);
 	if (["!claim"].includes(message[0].toLowerCase())) {
-		if (message[1] == adminPassword) {
+		if (message[1] == adminPassword && !player.admin) {
 			room.setPlayerAdmin(player.id, true);
 		}
 	}
@@ -272,6 +274,7 @@ room.onRoomLink = function(url) {
 }
 
 room.onPlayerAdminChange = function(changedPlayer, byPlayer) {
+	updateAdmins(changedPlayer.admin == false && changedPlayer.id == byPlayer.id ? changedPlayer.id : 0);
 }
 
 room.onStadiumChange = function(newStadiumName, byPlayer) {
