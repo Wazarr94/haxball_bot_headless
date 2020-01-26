@@ -351,6 +351,7 @@ room.onGameStart = function (byPlayer) {
 }
 
 room.onGameStop = function (byPlayer) {
+	clearTimeout(unpauseTimeout);
 	gameState = State.STOP;
 }
 
