@@ -24,6 +24,7 @@ var adminPassword = 1000 + getRandomInt(9000);
 
 var drawTimeLimit = Infinity;
 var maxAdmins = 2;
+var disableBans = true;
 
 /* PLAYERS */
 
@@ -313,7 +314,7 @@ room.onPlayerLeave = function(player) {
 }
 
 room.onPlayerKicked = function(kickedPlayer, reason, ban, byPlayer) {
-	if (ban && byPlayer.id === kickedPlayer.id) room.clearBan(kickedPlayer.id);
+	if (ban && (byPlayer.id === kickedPlayer.id) || disableBans) room.clearBan(kickedPlayer.id);
 }
 
 /* PLAYER ACTIVITY */
