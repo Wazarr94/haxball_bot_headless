@@ -30,13 +30,20 @@ var disableBans = true;
 
 const Team = { SPECTATORS: 0, RED: 1, BLUE: 2 };
 const State = { PLAY: 0, PAUSE: 1, STOP: 2 };
-const Role = { PLAYER: 0, ADMIN: 1 };
+const Role = { PLAYER: 0, ADMIN: 1, MASTER: 2 };
 const Notification = { NONE: 0, CHAT: 1, MENTION: 2 };
 var gameState = State.STOP;
 var players;
 var teamR;
 var teamB;
 var teamS;
+
+/* AUTH */
+
+var playerAuth = [];
+var authWhiteList = [];
+
+/* COMMANDS */
 
 var commands = {
 	"help": {
@@ -47,17 +54,17 @@ var commands = {
 Exemple: \'!help bb\' will show the description of the \'bb\' command.`,
 		"function": helpCommand,
 	},
-	"claim" : {
+	"claim": {
 		"aliases": [],
 		"roles": Role.PLAYER,
-		"desc" : false,
+		"desc": false,
 		"function": adminCommand,
 	},
 	"bb": {
 		"aliases": ["bye", "gn", "cya"],
 		"roles": Role.PLAYER,
 		"desc": `
-	This command makes you leave instantly (use recommended)`,
+	This command makes you leave instantly (use recommended).`,
 		"function": leaveCommand,
 	},
 	"rr": {
@@ -67,14 +74,14 @@ Exemple: \'!help bb\' will show the description of the \'bb\' command.`,
 	Admin command.
 This command makes the game restart.`,
 		"function": restartCommand,
-	},
+	}
 };
 
 /* GAME */
 
 var lastPlayersTouched;
 var lastTeamTouched;
-var point = [{"x": 0, "y": 0}, {"x": 0, "y": 0}];
+var point = [{ "x": 0, "y": 0 }, { "x": 0, "y": 0 }];
 var speedCoefficient = 100 / (5 * (0.99 ** 60 + 1));
 var ballSpeed;
 var goldenGoal = false;
@@ -104,11 +111,11 @@ var unpauseTimeout;
 /* AUXILIARY FUNCTIONS */
 
 function getRandomInt(max) { // returns a random number between 0 and max-1
-	return Math.floor(Math.random() * Math.floor(max)); 
+	return Math.floor(Math.random() * Math.floor(max));
 }
 
 function getTime(scores) { // gives the time of the game formatted like in haxball but within brackets
-	return `[${Math.floor(Math.floor(scores.time/60)/10)}${Math.floor(Math.floor(scores.time/60)%10)}:${Math.floor(Math.floor(scores.time-(Math.floor(scores.time/60)*60))/10)}${Math.floor(Math.floor(scores.time-(Math.floor(scores.time/60)*60))%10)}]`;
+	return `[${Math.floor(Math.floor(scores.time / 60) / 10)}${Math.floor(Math.floor(scores.time / 60) % 10)}:${Math.floor(Math.floor(scores.time - (Math.floor(scores.time / 60) * 60)) / 10)}${Math.floor(Math.floor(scores.time - (Math.floor(scores.time / 60) * 60)) % 10)}]`;
 }
 
 function pointDistance(p1, p2) {
@@ -126,7 +133,7 @@ function getCommand(commandStr) {
 	}
 	return false;
 }
- 
+
 /* STADIUM FUNCTIONS */
 
 function calculateStadiumVariables() {
@@ -145,22 +152,15 @@ function calculateStadiumVariables() {
 /* PLAYER FUNCTIONS */
 
 function getRole(player) {
-	return player.admin * 1;
+	return (authWhiteList.findIndex(auth => auth === playerAuth[player.id]) !== -1) * 1 + player.admin * 1;
 }
 
 /* COMMAND FUNCTIONS */
 
-function restartCommand(player, message) {
-	if (player.admin) instantRestart();
-}
+/* PLAYER COMMANDS */
 
 function leaveCommand(player, message) {
 	room.kickPlayer(player.id, "Bye !", false);
-}
-
-function adminCommand(player, message) {
-	msgArray = message.split(/ +/).slice(1);
-	if (parseInt(msgArray[0]) === adminPassword) room.setPlayerAdmin(player.id, true);
 }
 
 function helpCommand(player, message) {
@@ -171,22 +171,48 @@ function helpCommand(player, message) {
 			if (value.desc && value.roles === Role.PLAYER) commandString += ` !${key},`;
 		}
 		commandString = commandString.substring(0, commandString.length - 1) + ".";
-		if (getRole(player) === Role.ADMIN) {
+		if (getRole(player) >= Role.ADMIN) {
 			commandString += `\n        Admin commands :`;
 			for (const [key, value] of Object.entries(commands)) {
 				if (value.desc && value.roles === Role.ADMIN) commandString += ` !${key},`;
 			}
 		}
+		if (commandString.slice(commandString.length - 1) === ":") commandString += ` None,`;
+		commandString = commandString.substring(0, commandString.length - 1) + ".";
+		if (getRole(player) >= Role.MASTER) {
+			commandString += `\n        Master commands :`;
+			for (const [key, value] of Object.entries(commands)) {
+				if (value.desc && value.roles === Role.MASTER) commandString += ` !${key},`;
+			}
+		}
+		if (commandString.slice(commandString.length - 1) === ":") commandString += ` None,`;
 		commandString = commandString.substring(0, commandString.length - 1) + ".";
 		commandString += "\n\n To get information on a specific command, type '\'!help <command name>\'.";
 		room.sendAnnouncement(commandString, player.id, statsColor, "bold", Notification.CHAT);
 	}
 	else if (msgArray.length >= 1) {
 		var commandName = getCommand(msgArray[0].toLowerCase());
-		if (commandName && commands[commandName].desc) room.sendAnnouncement(`[PV] \'${commandName}\' command :\n${commands[commandName].desc}`, player.id, statsColor, "bold", Notification.CHAT);
+		if (commandName !== false && commands[commandName].desc !== false) room.sendAnnouncement(`[PV] \'${commandName}\' command :\n${commands[commandName].desc}`, player.id, statsColor, "bold", Notification.CHAT);
 		else room.sendAnnouncement(`[PV] The command you tried to get information on does not exist. To check all available commands, type \'!help\'`, player.id, statsColor, "bold", Notification.CHAT);
 	}
 }
+
+function adminCommand(player, message) {
+	msgArray = message.split(/ +/).slice(1);
+	if (parseInt(msgArray[0]) === adminPassword) {
+		room.setPlayerAdmin(player.id, true);
+		authWhiteList.push(playerAuth[player.id]);
+		room.sendAnnouncement(`${player.name} is now a room master !`, null, announcementColor, "bold", Notification.CHAT);
+	}
+}
+
+/* ADMIN COMMANDS */
+
+function restartCommand(player, message) {
+	if (player.admin) instantRestart();
+}
+
+/* MASTER COMMANDS */
 
 /* GAME FUNCTIONS */
 
@@ -225,8 +251,8 @@ function checkTime() {
 }
 
 function instantRestart() {
-    room.stopGame();
-    setTimeout(() => { room.startGame(); }, 10);
+	room.stopGame();
+	setTimeout(() => { room.startGame(); }, 10);
 }
 
 function endGame(winner) { // no stopGame function in it
@@ -298,46 +324,51 @@ function getStats() { // gives the speed of the ball
 
 /* PLAYER MOVEMENT */
 
-room.onPlayerJoin = function(player) {
+room.onPlayerJoin = function (player) {
 	room.sendAnnouncement(`[PV] 👋 Welcome ${player.name} !`, player.id, welcomeColor, "bold", Notification.CHAT);
 	updateTeams();
 	updateAdmins();
+	playerAuth[player.id] = player.auth;
+	if (authWhiteList.findIndex(auth => auth === player.auth) !== -1) {
+		room.sendAnnouncement(`Master ${player.name} has connected to the room !`, null, announcementColor, "bold", Notification.CHAT);
+		room.setPlayerAdmin(player.id, true);
+	}
 }
 
-room.onPlayerTeamChange = function(changedPlayer, byPlayer) {
+room.onPlayerTeamChange = function (changedPlayer, byPlayer) {
 	updateTeams();
 }
 
-room.onPlayerLeave = function(player) {
+room.onPlayerLeave = function (player) {
 	updateTeams();
 	updateAdmins();
 }
 
-room.onPlayerKicked = function(kickedPlayer, reason, ban, byPlayer) {
+room.onPlayerKicked = function (kickedPlayer, reason, ban, byPlayer) {
 	if (ban && (byPlayer.id === kickedPlayer.id) || disableBans) room.clearBan(kickedPlayer.id);
 }
 
 /* PLAYER ACTIVITY */
 
-room.onPlayerChat = function(player, message) {
+room.onPlayerChat = function (player, message) {
 	let msgArray = message.split(/ +/);
 	if (msgArray[0][0] === '!') {
 		let command = getCommand(msgArray[0].slice(1).toLowerCase());
-		if (command) commands[command].function(player, message);
+		if (command !== false && commands[command].roles <= getRole(player)) commands[command].function(player, message);
 		return false;
 	}
 }
 
-room.onPlayerActivity = function(player) {
+room.onPlayerActivity = function (player) {
 }
 
-room.onPlayerBallKick = function(player) {
-    if (lastPlayersTouched[0] === null || player.id !== lastPlayersTouched[0].id) {
+room.onPlayerBallKick = function (player) {
+	if (lastPlayersTouched[0] === null || player.id !== lastPlayersTouched[0].id) {
 		if (!activePlay) activePlay = true;
 		lastTeamTouched = player.team;
-        lastPlayersTouched[1] = lastPlayersTouched[0];
+		lastPlayersTouched[1] = lastPlayersTouched[0];
 		lastPlayersTouched[0] = player;
-    }
+	}
 }
 
 /* GAME MANAGEMENT */
@@ -356,16 +387,16 @@ room.onGameStop = function (byPlayer) {
 	gameState = State.STOP;
 }
 
-room.onGamePause = function(byPlayer) {
+room.onGamePause = function (byPlayer) {
 	clearTimeout(unpauseTimeout);
 	gameState = State.PAUSE;
 }
 
-room.onGameUnpause = function(byPlayer) {
+room.onGameUnpause = function (byPlayer) {
 	unpauseTimeout = setTimeout(() => { gameState = State.PLAY; }, 1000);
 }
 
-room.onTeamGoal = function(team) {
+room.onTeamGoal = function (team) {
 	const scores = room.getScores();
 	activePlay = false;
 	if (lastPlayersTouched[0] !== null) {
@@ -388,7 +419,7 @@ room.onTeamGoal = function(team) {
 	}
 }
 
-room.onPositionsReset = function() {
+room.onPositionsReset = function () {
 	lastPlayersTouched = [null, null];
 	lastTeamTouched = Team.SPECTATORS;
 }
@@ -399,16 +430,17 @@ room.onRoomLink = function (url) {
 	console.log(`${url}\nadminPassword : ${adminPassword}`);
 }
 
-room.onPlayerAdminChange = function(changedPlayer, byPlayer) {
+room.onPlayerAdminChange = function (changedPlayer, byPlayer) {
 	updateTeams();
+	if (changedPlayer.admin === false && getRole(changedPlayer) === Role.MASTER) room.setPlayerAdmin(changedPlayer.id, true);
 	updateAdmins(changedPlayer.admin === false && changedPlayer.id === byPlayer.id ? changedPlayer.id : 0);
 }
 
-room.onStadiumChange = function(newStadiumName, byPlayer) {
+room.onStadiumChange = function (newStadiumName, byPlayer) {
 	checkStadiumVariables = true;
 }
 
-room.onGameTick = function() {
+room.onGameTick = function () {
 	checkTime();
 	getStats();
 	getLastTouchOfTheBall();
