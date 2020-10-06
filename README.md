@@ -89,10 +89,6 @@ And we choose until the teams are balanced. Also, make sure no one moves the pla
 
 This project has been quite popular on the haxball scene, I've seen many rooms using the level 4 bot.
 
-In parallel with another project, and a possible withdrawal from haxball, I am going to rework the project. The level system might have been confusing and I'll probably change the structure a bit, not much though. In the end, it'll the same thing with different names.
-
-In the following days, expect an update with new features, improved code. During the time I wasn't active, I was doing other bots, so a lot of fixes have been done, but not released.
-
-In any case, if you have an issue, submit one in the issues tab. If you have experience in JS and want to help, send a DM at `@Gouiri#9550`.
+There might be an update before end of year. Stay tuned
 
 
