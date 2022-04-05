@@ -4,8 +4,8 @@
 
 const roomName = 'Public Room';
 const maxPlayers = 12;
-const roomPublic = true;
-const token = ""; // Insert token here
+const roomPublic = false;
+const token = "thr1.AAAAAGJMrjJStmIpele8cw.QL69exEgSnk"; // Insert token here
 
 var roomWebhook = ''; // this webhook is used to send the details of the room (chat, join, leave) ; it should be in a private discord channel
 var gameWebhook = ''; // this webhook is used to send the summary of the games ; it should be in a public discord channel
@@ -46,7 +46,7 @@ var drawTimeLimit = Infinity;
 var teamSize = 4;
 var maxAdmins = 0;
 var disableBans = false;
-var debugMode = false;
+var debugMode = true;
 var afkLimit = debugMode ? Infinity : 12;
 
 var defaultSlowMode = 0.5;
@@ -72,7 +72,7 @@ class Game {
     constructor() {
         this.date = Date.now();
         this.scores = room.getScores();
-        this.playerComp = getStartingLineups;
+        this.playerComp = getStartingLineups();
         this.goals = [];
         this.rec = room.startRecording();
         this.touchArray = [];
