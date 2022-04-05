@@ -4,8 +4,8 @@
 
 const roomName = 'Public Room';
 const maxPlayers = 12;
-const roomPublic = false;
-const token = "thr1.AAAAAGJMrjJStmIpele8cw.QL69exEgSnk"; // Insert token here
+const roomPublic = true;
+const token = ""; // Insert token here
 
 var roomWebhook = ''; // this webhook is used to send the details of the room (chat, join, leave) ; it should be in a private discord channel
 var gameWebhook = ''; // this webhook is used to send the summary of the games ; it should be in a public discord channel
@@ -46,7 +46,7 @@ var drawTimeLimit = Infinity;
 var teamSize = 4;
 var maxAdmins = 0;
 var disableBans = false;
-var debugMode = true;
+var debugMode = false;
 var afkLimit = debugMode ? Infinity : 12;
 
 var defaultSlowMode = 0.5;
@@ -2863,8 +2863,10 @@ function printPlayerStats(stats) {
     for (let [key, value] of Object.entries(stats)) {
         if (key == 'playerName') statsString += `${value}: `;
         else {
-            key = key.replace(/([A-Z])/g, ' $1').trim();
-            statsString += `${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}, `;
+            let statName = key;
+            let reCamelCase = /([A-Z](?=[a-z]+)|[A-Z]+(?![a-z]))/g;
+            statName = statName.replace(reCamelCase, ' $1').trim();
+            statsString += `${statName.charAt(0).toUpperCase() + statName.slice(1)}: ${value}, `;
         }
     }
     statsString = statsString.substring(0, statsString.length - 2);
