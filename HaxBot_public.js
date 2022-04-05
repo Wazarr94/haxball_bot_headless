@@ -692,7 +692,7 @@ function teamChat(player, message) {
 
 function playerChat(player, message) {
     var msgArray = message.split(/ +/);
-    var playerTargetIndex = players.findIndex(
+    var playerTargetIndex = playersAll.findIndex(
         (p) => p.name.replaceAll(' ', '_') == msgArray[0].substring(2)
     );
     if (playerTargetIndex == -1) {
@@ -705,7 +705,7 @@ function playerChat(player, message) {
         );
         return false;
     }
-    var playerTarget = players[playerTargetIndex];
+    var playerTarget = playersAll[playerTargetIndex];
     if (player.id == playerTarget.id) {
         room.sendAnnouncement(
             `You can't send a PM to yourself!`,
