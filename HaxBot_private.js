@@ -50,6 +50,47 @@ var debugMode = false;
 var hideClaimMessage = true;
 var mentionPlayersUnpause = true;
 
+/* OBJECTS */
+
+class Goal {
+    constructor(time, team, striker, assist) {
+        this.time = time;
+        this.team = team;
+        this.striker = striker;
+        this.assist = assist;
+    }
+}
+
+class Game {
+    constructor() {
+        this.date = Date.now();
+        this.scores = room.getScores();
+        this.playerComp = getStartingLineups();
+        this.goals = [];
+        this.rec = room.startRecording();
+        this.touchArray = [];
+    }
+}
+
+class PlayerComposition {
+    constructor(player, auth, timeEntry, timeExit) {
+        this.player = player;
+        this.auth = auth;
+        this.timeEntry = timeEntry;
+        this.timeExit = timeExit;
+        this.inactivityTicks = 0;
+    }
+}
+
+class BallTouch {
+    constructor(player, time, goal, position) {
+        this.player = player;
+        this.time = time;
+        this.goal = goal;
+        this.position = position;
+    }
+}
+
 /* PLAYERS */
 
 const Team = { SPECTATORS: 0, RED: 1, BLUE: 2 };
@@ -271,54 +312,7 @@ var emptyPlayer = {
 };
 stadiumCommand(emptyPlayer, "!big");
 
-/* OBJECTS */
-
-class Goal {
-    constructor(time, team, striker, assist) {
-        this.time = time;
-        this.team = team;
-        this.striker = striker;
-        this.assist = assist;
-    }
-}
-
-class Game {
-    constructor(date, scores, playerComp, goals, touchArray) {
-        this.date = date;
-        this.scores = scores;
-        this.playerComp = playerComp;
-        this.goals = goals;
-        this.rec = room.startRecording();
-        this.touchArray = touchArray;
-    }
-}
-
-class PlayerComposition {
-    constructor(player, auth, timeEntry, timeExit) {
-        this.player = player;
-        this.auth = auth;
-        this.timeEntry = timeEntry;
-        this.timeExit = timeExit;
-        this.inactivityTicks = 0;
-    }
-}
-
-class BallTouch {
-    constructor(player, time, goal, position) {
-        this.player = player;
-        this.time = time;
-        this.goal = goal;
-        this.position = position;
-    }
-}
-
-var game = new Game(
-    date = Date.now(),
-    scores = room.getScores(),
-    playerComp = getStartingLineups(),
-    goals = [],
-    touchArray = []
-);
+var game = new Game();
 
 /* FUNCTIONS */
 
@@ -1876,14 +1870,7 @@ room.onPlayerBallKick = function (player) {
 room.onGameStart = function (byPlayer) {
     clearTimeout(startTimeout);
     if (byPlayer != null) clearTimeout(stopTimeout);
-    game = new Game(
-        date = Date.now(),
-        scores = room.getScores(),
-        playerComp = getStartingLineups(),
-        goals = [],
-        touchArray = [],
-        realTouchArray = []
-    );
+    game = new Game();
     possession = [0, 0];
     actionZoneHalf = [0, 0];
     gameState = State.PLAY;

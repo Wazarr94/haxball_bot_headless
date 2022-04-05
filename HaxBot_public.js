@@ -57,6 +57,136 @@ var SMSet = new Set();
 var hideClaimMessage = true;
 var mentionPlayersUnpause = true;
 
+/* OBJECTS */
+
+class Goal {
+    constructor(time, team, striker, assist) {
+        this.time = time;
+        this.team = team;
+        this.striker = striker;
+        this.assist = assist;
+    }
+}
+
+class Game {
+    constructor() {
+        this.date = Date.now();
+        this.scores = room.getScores();
+        this.playerComp = getStartingLineups;
+        this.goals = [];
+        this.rec = room.startRecording();
+        this.touchArray = [];
+    }
+}
+
+class PlayerComposition {
+    constructor(player, auth, timeEntry, timeExit) {
+        this.player = player;
+        this.auth = auth;
+        this.timeEntry = timeEntry;
+        this.timeExit = timeExit;
+        this.inactivityTicks = 0;
+    }
+}
+
+class MutePlayer {
+    constructor(name, id, auth) {
+        this.id = MutePlayer.incrementId();
+        this.name = name;
+        this.playerId = id;
+        this.auth = auth;
+        this.unmuteTimeout = null;
+    }
+
+    static incrementId() {
+      if (!this.latestId) this.latestId = 1
+      else this.latestId++
+      return this.latestId
+    }
+
+    setDuration(minutes) {
+        this.unmuteTimeout = setTimeout(() => {
+            room.sendAnnouncement(
+                `You have been unmuted.`,
+                this.playerId,
+                announcementColor,
+                "bold",
+                HaxNotification.CHAT
+            );
+            this.remove();
+        }, minutes * 60 * 1000);
+        muteArray.add(this);
+    }
+
+    remove() {
+        this.unmuteTimeout = null;
+        muteArray.removeById(this.id);
+    }
+}
+
+class MuteList {
+    constructor() {
+        this.list = [];
+    }
+
+    add(mutePlayer) {
+        this.list.push(mutePlayer);
+        return mutePlayer;
+    }
+
+    getById(id) {
+        var index = this.list.findIndex(mutePlayer => mutePlayer.id === id);
+        if (index !== -1) {
+            return this.list[index];
+        }
+        return null;
+    }
+
+    getByAuth(auth) {
+        var index = this.list.findIndex(mutePlayer => mutePlayer.auth === auth);
+        if (index !== -1) {
+            return this.list[index];
+        }
+        return null;
+    }
+
+    removeById(id) {
+        var index = this.list.findIndex(mutePlayer => mutePlayer.id === id);
+        if (index !== -1) {
+            this.list.splice(index, 1);
+        }
+    }
+
+    removeByAuth(auth) {
+        var index = this.list.findIndex(mutePlayer => mutePlayer.auth === auth);
+        if (index !== -1) {
+            this.list.splice(index, 1);
+        }
+    }
+}
+
+class BallTouch {
+    constructor(player, time, goal, position) {
+        this.player = player;
+        this.time = time;
+        this.goal = goal;
+        this.position = position;
+    }
+}
+
+class HaxStatistics {
+    constructor(playerName = '') {
+        this.playerName = playerName;
+        this.games = 0;
+        this.wins = 0;
+        this.winrate = '0.00%';
+        this.goals = 0;
+        this.assists = 0;
+        this.saves = 0;
+        this.ownGoals = 0;
+    }
+}
+
 /* PLAYERS */
 
 const Team = { SPECTATORS: 0, RED: 1, BLUE: 2 };
@@ -250,6 +380,37 @@ Example: \'!help bb\' will show the description of the \'bb\' command.`,
     This command kicks all the players from the spectators team, including the player that entered the command. You can give as an argument the reason of the kick.`,
         function: kickTeamCommand,
     },
+    mute: {
+        aliases: ['m'],
+        roles: Role.ADMIN_TEMP,
+        desc: `
+        This command allows to mute a player. He won't be able to talk for a certain duration, and can be unmuted at any time by admins.
+    It takes 2 arguments:
+    Argument 1: #<id> where <id> is the id of the player targeted. This won't work if the player is an admin.
+    Argument 2 (optional): <duration> where <duration> is the duration of the mute in minutes. If no value is provided, the mute lasts for the default duration, ${muteDuration} minutes.
+    Example: !mute #3 20 will mute the player with id 3 for 20 minutes.`,
+        function: muteCommand,
+    },
+    unmute: {
+        aliases: ['um'],
+        roles: Role.ADMIN_TEMP,
+        desc: `
+        This command allows to unmute someone.
+    It takes 1 argument:
+    Argument 1: #<id> where <id> is the id of the muted player.
+    OR
+    Argument 1: <number> where <number> is the number associated with the mute given by the 'muteList' command.
+    Example: !unmute #300 will unmute the player with id 300,
+             !unmute 8 will unmute the n°8 player according to the 'muteList' command.`,
+        function: unmuteCommand,
+    },
+    mutes: {
+        aliases: [],
+        roles: Role.ADMIN_TEMP,
+        desc: `
+        This command shows the list of muted players.`,
+        function: muteListCommand,
+    },
     clearbans: {
         aliases: [],
         roles: Role.MASTER,
@@ -289,9 +450,9 @@ Example: !setadmin #3 will give admin to the player with id 3.`,
 It takes 1 argument:
 Argument 1: #<id> where <id> is the id of the player targeted.
 OR
-Argument 1: <number> where <number> is the number associated with the admin given by the 'adminList' command.
+Argument 1: <number> where <number> is the number associated with the admin given by the 'admins' command.
 Example: !removeadmin #300 will remove admin to the player with id 300,
-         !removeadmin 2 will remove the admin n°2 according to the 'adminList' command.`,
+         !removeadmin 2 will remove the admin n°2 according to the 'admins' command.`,
         function: removeAdminCommand,
     },
     password: {
@@ -353,6 +514,9 @@ var minAFKDuration = 0;
 var maxAFKDuration = 30;
 var AFKCooldown = 0;
 
+var muteArray = new MuteList();
+var muteDuration = 5;
+
 var removingPlayers = false;
 var insertingPlayers = false;
 
@@ -367,67 +531,7 @@ var emptyPlayer = {
 };
 stadiumCommand(emptyPlayer, "!training");
 
-/* OBJECTS */
-
-class Goal {
-    constructor(time, team, striker, assist) {
-        this.time = time;
-        this.team = team;
-        this.striker = striker;
-        this.assist = assist;
-    }
-}
-
-class Game {
-    constructor(date, scores, playerComp, goals, touchArray) {
-        this.date = date;
-        this.scores = scores;
-        this.playerComp = playerComp;
-        this.goals = goals;
-        this.rec = room.startRecording();
-        this.touchArray = touchArray;
-    }
-}
-
-class PlayerComposition {
-    constructor(player, auth, timeEntry, timeExit) {
-        this.player = player;
-        this.auth = auth;
-        this.timeEntry = timeEntry;
-        this.timeExit = timeExit;
-        this.inactivityTicks = 0;
-    }
-}
-
-class BallTouch {
-    constructor(player, time, goal, position) {
-        this.player = player;
-        this.time = time;
-        this.goal = goal;
-        this.position = position;
-    }
-}
-
-class HaxStatistics {
-    constructor(playerName = '') {
-        this.playerName = playerName;
-        this.games = 0;
-        this.wins = 0;
-        this.winrate = '0.00%';
-        this.goals = 0;
-        this.assists = 0;
-        this.saves = 0;
-        this.ownGoals = 0;
-    }
-}
-
-var game = new Game(
-    date = Date.now(),
-    scores = room.getScores(),
-    playerComp = getStartingLineups(),
-    goals = [],
-    touchArray = []
-);
+var game = new Game();
 
 /* FUNCTIONS */
 
@@ -937,12 +1041,7 @@ function afkCommand(player, message) {
 }
 
 function afkListCommand(player, message) {
-    var cstm = '😴 AFK list : ';
-    AFKSet.forEach((_, value) => {
-        var p = room.getPlayer(value);
-        if (p != null) cstm += p.name + `, `;
-    });
-    if ('😴 AFK list : ') {
+    if (AFKSet.size == 0) {
         room.sendAnnouncement(
             "😴 There's nobody in the AFK list.",
             player.id,
@@ -952,6 +1051,11 @@ function afkListCommand(player, message) {
         );
         return;
     }
+    var cstm = '😴 AFK list : ';
+    AFKSet.forEach((_, value) => {
+        var p = room.getPlayer(value);
+        if (p != null) cstm += p.name + `, `;
+    });
     cstm = cstm.substring(0, cstm.length - 2) + '.';
     room.sendAnnouncement(cstm, player.id, announcementColor, 'bold', null);
 }
@@ -1082,6 +1186,155 @@ function stadiumCommand(player, message) {
             HaxNotification.CHAT
         );
     }
+}
+
+function muteCommand(player, message) {
+    var msgArray = message.split(/ +/).slice(1);
+    if (msgArray.length > 0) {
+        if (msgArray[0].length > 0 && msgArray[0][0] == '#') {
+            msgArray[0] = msgArray[0].substring(1, msgArray[0].length);
+            if (room.getPlayer(parseInt(msgArray[0])) != null) {
+                var playerMute = room.getPlayer(parseInt(msgArray[0]));
+                var minutesMute = muteDuration;
+                if (msgArray.length > 1 && parseInt(msgArray[1]) > 0) {
+                    minutesMute = parseInt(msgArray[1]);
+                }
+                if (!playerMute.admin) {
+                    var muteObj = new MutePlayer(playerMute.name, playerMute.id, authArray[playerMute.id][0]);
+                    muteObj.setDuration(minutesMute);
+                    room.sendAnnouncement(
+                        `${playerMute.name} has been muted for ${minutesMute} minutes.`,
+                        null,
+                        announcementColor,
+                        'bold',
+                        null
+                    );
+                } else {
+                    room.sendAnnouncement(
+                        `You can't mute an admin.`,
+                        player.id,
+                        errorColor,
+                        'bold',
+                        HaxNotification.CHAT
+                    );
+                }
+            } else {
+                room.sendAnnouncement(
+                    `There is no player with such ID in the room. Enter "!help mute" for more information.`,
+                    player.id,
+                    errorColor,
+                    'bold',
+                    HaxNotification.CHAT
+                );
+            }
+        } else {
+            room.sendAnnouncement(
+                `Incorrect format for your argument. Enter "!help mute" for more information.`,
+                player.id,
+                errorColor,
+                'bold',
+                HaxNotification.CHAT
+            );
+        }
+    } else {
+        room.sendAnnouncement(
+            `Wrong number of arguments. Enter "!help mute" for more information.`,
+            player.id,
+            errorColor,
+            'bold',
+            HaxNotification.CHAT
+        );
+    }
+}
+
+function unmuteCommand(player, message) {
+    var msgArray = message.split(/ +/).slice(1);
+    if (msgArray.length > 0) {
+        if (msgArray[0].length > 0 && msgArray[0][0] == '#') {
+            msgArray[0] = msgArray[0].substring(1, msgArray[0].length);
+            if (room.getPlayer(parseInt(msgArray[0])) != null) {
+                var playerUnmute = room.getPlayer(parseInt(msgArray[0]));
+                if (muteArray.getById(playerUnmute.id) != null) {
+                    var muteObj = muteArray.getById(playerUnmute.id);
+                    muteObj.remove()
+                    room.sendAnnouncement(
+                        `${playerUnmute.name} has been unmuted !`,
+                        null,
+                        announcementColor,
+                        'bold',
+                        HaxNotification.CHAT
+                    );
+                } else {
+                    room.sendAnnouncement(
+                        `This player isn't muted !`,
+                        player.id,
+                        errorColor,
+                        'bold',
+                        HaxNotification.CHAT
+                    );
+                }
+            } else {
+                room.sendAnnouncement(
+                    `There is no player with such ID in the room. Enter "!help unmute" for more information.`,
+                    player.id,
+                    errorColor,
+                    'bold',
+                    HaxNotification.CHAT
+                );
+            }
+        } else if (msgArray[0].length > 0 && parseInt(msgArray[0]) > 0 && muteArray.getById(parseInt(msgArray[0])) != null) {
+            var playerUnmute = muteArray.getById(parseInt(msgArray[0]));
+            playerUnmute.remove();
+            room.sendAnnouncement(
+                `${playerUnmute.name} has been unmuted !`,
+                null,
+                announcementColor,
+                'bold',
+                HaxNotification.CHAT
+            );
+        } else {
+            room.sendAnnouncement(
+                `Incorrect format for your argument. Enter "!help unmute" for more information.`,
+                player.id,
+                errorColor,
+                'bold',
+                HaxNotification.CHAT
+            );
+        }
+    } else {
+        room.sendAnnouncement(
+            `Wrong number of arguments. Enter "!help unmute" for more information.`,
+            player.id,
+            errorColor,
+            'bold',
+            HaxNotification.CHAT
+        );
+    }
+}
+
+function muteListCommand(player, message) {
+    if (muteArray.list.length == 0) {
+        room.sendAnnouncement(
+            "🔇 There's nobody in the mute list.",
+            player.id,
+            announcementColor,
+            'bold',
+            null
+        );
+        return false;
+    }
+    var cstm = '🔇 Mute list : ';
+    for (let mute of muteArray.list) {
+        cstm += mute.name + `[${mute.id}], `;
+    }
+    cstm = cstm.substring(0, cstm.length - 2) + '.';
+    room.sendAnnouncement(
+        cstm,
+        player.id,
+        announcementColor,
+        'bold',
+        null
+    );
 }
 
 /* MASTER COMMANDS */
@@ -2981,6 +3234,16 @@ room.onPlayerChat = function (player, message) {
         var filter = slowModeFunction(player, message);
         if (filter) return false;
     }
+    if (!player.admin && muteArray.getByAuth(authArray[player.id][0]) != null) {
+        room.sendAnnouncement(
+            `You are muted !`,
+            player.id,
+            errorColor,
+            'bold',
+            HaxNotification.CHAT
+        );
+        return false;
+    }
 };
 
 room.onPlayerActivity = function (player) {
@@ -3023,14 +3286,7 @@ room.onPlayerBallKick = function (player) {
 room.onGameStart = function (byPlayer) {
     clearTimeout(startTimeout);
     if (byPlayer != null) clearTimeout(stopTimeout);
-    game = new Game(
-        date = Date.now(),
-        scores = room.getScores(),
-        playerComp = getStartingLineups(),
-        goals = [],
-        touchArray = [],
-        realTouchArray = []
-    );
+    game = new Game();
     possession = [0, 0];
     actionZoneHalf = [0, 0];
     gameState = State.PLAY;
