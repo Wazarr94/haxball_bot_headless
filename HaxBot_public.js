@@ -180,9 +180,9 @@ class HaxStatistics {
         this.games = 0;
         this.wins = 0;
         this.winrate = '0.00%';
+        this.playtime = 0;
         this.goals = 0;
         this.assists = 0;
-        this.saves = 0;
         this.ownGoals = 0;
     }
 }
@@ -310,11 +310,11 @@ Example: \'!help bb\' will show the description of the \'bb\' command.`,
         This command shows the top 5 players with the most assists in the room.`,
         function: statsLeaderboardCommand,
     },
-    saves: {
+    playtime: {
         aliases: [],
         roles: Role.PLAYER,
         desc: `
-        This command shows the top 5 players with the most saves in the room.`,
+        This command shows the top 5 players with the most time played in the room.`,
         function: statsLeaderboardCommand,
     },
     training: {
@@ -562,6 +562,10 @@ function pointDistance(p1, p2) {
 
 /* TIME FUNCTIONS */
 
+function getHoursStats(time) {
+    return Math.floor(time / 3600);
+}
+
 function getMinutesGame(time) {
     var t = Math.floor(time / 60);
     return `${Math.floor(t / 10)}${Math.floor(t % 10)}`;
@@ -576,6 +580,10 @@ function getMinutesEmbed(time) {
     return `${Math.floor(t / 10)}${Math.floor(t % 10)}`;
 }
 
+function getMinutesStats(time) {
+    return Math.floor(time / 60) - getHoursStats(time) * 60;
+}
+
 function getSecondsGame(time) {
     var t = Math.floor(time - Math.floor(time / 60) * 60);
     return `${Math.floor(t / 10)}${Math.floor(t % 10)}`;
@@ -583,7 +591,7 @@ function getSecondsGame(time) {
 
 function getSecondsReport(time) {
     var t = Math.round(time);
-    return Math.floor(t - Math.floor(t / 60) * 60);
+    return Math.floor(t - getMinutesReport(t) * 60);
 }
 
 function getSecondsEmbed(time) {
@@ -598,6 +606,14 @@ function getTimeGame(time) {
 
 function getTimeEmbed(time) {
     return `[${getMinutesEmbed(time)}:${getSecondsEmbed(time)}]`;
+}
+
+function getTimeStats(time) {
+    if (getHoursStats(time) > 0) {
+        return `${getHoursStats(time)}h${getMinutesStats(time)}m`;
+    } else {
+        return `${getMinutesStats(time)}m`;
+    }
 }
 
 function getGoalGame() {
@@ -1693,22 +1709,25 @@ function endGame(winner) {
     lastWinner = winner;
     endGameVariable = true;
     if (winner == Team.RED) {
+        streak++;
         room.sendAnnouncement(
-            `✨ Red Team won ${scores.red} - ${scores.blue} !`,
+            `✨ Red Team won ${scores.red} - ${scores.blue} ! Current streak: ${streak}`,
             null,
             redColor,
             'bold',
             HaxNotification.CHAT
         );
     } else if (winner == Team.BLUE) {
+        streak = 1;
         room.sendAnnouncement(
-            `✨ Blue Team won ${scores.blue} - ${scores.red} !`,
+            `✨ Blue Team won ${scores.blue} - ${scores.red} ! Current streak: ${streak}`,
             null,
             blueColor,
             'bold',
             HaxNotification.CHAT
         );
     } else {
+        streak = 0;
         room.sendAnnouncement(
             '💤 Draw limit reached !',
             null,
@@ -2253,7 +2272,7 @@ function balanceTeams() {
                 }, 5);
                 room.setPlayerTeam(players[0].id, Team.RED);
                 return;
-            } else if (players.length == 5) {
+            } else if (teamSize > 2 && players.length == 5) {
                 instantRestart();
                 setTimeout(() => {
                     stadiumCommand(emptyPlayer, `!classic`);
@@ -2296,7 +2315,7 @@ function balanceTeams() {
 
 function handlePlayersJoin() {
     if (chooseMode) {
-        if (players.length == 6) {
+        if (teamSize > 2 && players.length == 6) {
             setTimeout(() => {
                 stadiumCommand(emptyPlayer, `!big`);
             }, 5);
@@ -2338,7 +2357,7 @@ function handlePlayersLeave() {
         }
     }
     if (chooseMode) {
-        if (players.length == 5) {
+        if (teamSize > 2 && players.length == 5) {
             setTimeout(() => {
                 stadiumCommand(emptyPlayer, `!classic`);
             }, 5);
@@ -2522,7 +2541,7 @@ function handlePlayersStop(byPlayer) {
                 }, 200);
                 insertingTimeout = setTimeout(() => {
                     insertingPlayers = false;
-                }, 200);
+                }, 300);
                 startTimeout = setTimeout(() => {
                     room.startGame();
                 }, 2000);
@@ -2714,6 +2733,7 @@ function updatePlayerStats(player, teamStats) {
     stats.goals += getGoalsPlayer(pComp);
     stats.assists += getAssistsPlayer(pComp);
     stats.ownGoals += getOwnGoalsPlayer(pComp);
+    stats.playtime += getGametimePlayer(pComp);
     localStorage.setItem(authArray[player.id][0], JSON.stringify(stats));
 }
 
@@ -2761,7 +2781,10 @@ function printRankings(statKey, id = 0) {
     leaderboard.sort(function (a, b) { return b[1] - a[1]; });
     var rankingString = `${statKey.charAt(0).toUpperCase() + statKey.slice(1)}> `;
     for (let i = 0; i < 5; i++) {
-        rankingString += `#${i + 1} ${leaderboard[i][0]} : ${leaderboard[i][1]}, `;
+        let playerName = leaderboard[i][0];
+        let playerStat = leaderboard[i][1];
+        if (statKey == 'playtime') playerStat = getTimeStats(playerStat);
+        rankingString += `#${i + 1} ${playerName} : ${playerStat}, `;
     }
     rankingString = rankingString.substring(0, rankingString.length - 2);
     room.sendAnnouncement(
@@ -2781,6 +2804,7 @@ function getGamePlayerStats(player) {
     stats.goals += getGoalsPlayer(pComp);
     stats.assists += getAssistsPlayer(pComp);
     stats.ownGoals += getOwnGoalsPlayer(pComp);
+    stats.playtime += getGametimePlayer(pComp);
     return stats;
 }
 
@@ -2863,9 +2887,9 @@ function printPlayerStats(stats) {
     for (let [key, value] of Object.entries(stats)) {
         if (key == 'playerName') statsString += `${value}: `;
         else {
-            let statName = key;
+            if (key == 'playtime') value = getTimeStats(value);
             let reCamelCase = /([A-Z](?=[a-z]+)|[A-Z]+(?![a-z]))/g;
-            statName = statName.replace(reCamelCase, ' $1').trim();
+            let statName = key.replaceAll(reCamelCase, ' $1').trim();
             statsString += `${statName.charAt(0).toUpperCase() + statName.slice(1)}: ${value}, `;
         }
     }
@@ -2886,28 +2910,8 @@ function fetchGametimeReport(game) {
         value: '⌛ __**Game Time:**__\n\n',
         inline: true,
     };
-    var redTeamTimes = game.playerComp[0].map((p) => [p.player, 0]);
-    for (let i = 0; i < game.playerComp[0].length; i++) {
-        var player = game.playerComp[0][i];
-        for (let j = 0; j < player.timeEntry.length; j++) {
-            if (player.timeExit.length < j + 1) {
-                redTeamTimes[i][1] += game.scores.time - player.timeEntry[j];
-            } else {
-                redTeamTimes[i][1] += player.timeExit[j] - player.timeEntry[j];
-            }
-        }
-    }
-    var blueTeamTimes = game.playerComp[1].map((p) => [p.player, 0]);
-    for (let i = 0; i < game.playerComp[1].length; i++) {
-        var player = game.playerComp[1][i];
-        for (let j = 0; j < player.timeEntry.length; j++) {
-            if (player.timeExit.length < j + 1) {
-                blueTeamTimes[i][1] += game.scores.time - player.timeEntry[j];
-            } else {
-                blueTeamTimes[i][1] += player.timeExit[j] - player.timeEntry[j];
-            }
-        }
-    }
+    var redTeamTimes = game.playerComp[0].map((p) => [p.player, getGametimePlayer(p)]);
+    var blueTeamTimes = game.playerComp[1].map((p) => [p.player, getGametimePlayer(p)]);
 
     for (let time of redTeamTimes) {
         var minutes = getMinutesReport(time[1]);
