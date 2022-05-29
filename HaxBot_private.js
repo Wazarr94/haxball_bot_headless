@@ -388,7 +388,8 @@ function getGoalGame() {
 /* REPORT FUNCTIONS */
 
 function findFirstNumberCharString(str) {
-    return str[str.search(/[0-9]/g)];
+    let str_number = str[str.search(/[0-9]/g)];
+    return str_number === undefined ? "0" : str_number;
 }
 
 function getIdReport() {
@@ -406,7 +407,10 @@ function getRecordingName(game) {
 function fetchRecording(game) {
     if (gameWebhook != "") {
         let form = new FormData();
-        form.append(null, new File([game.rec], getRecordingName(game), {"type": "text/plain"}));
+        form.append(null, new File([game.rec], getRecordingName(game), { "type": "text/plain" }));
+        form.append("payload_json", JSON.stringify({
+            "username": roomName
+        }));
 
         fetch(gameWebhook, {
             method: 'POST',
@@ -1526,22 +1530,20 @@ function fetchGametimeReport(game) {
         var minutes = getMinutesReport(time[1]);
         var seconds = getSecondsReport(time[1]);
         fieldGametimeRed.value += `> **${time[0].name}:** ${minutes > 0 ? `${minutes}m` : ''}` +
-                                  `${seconds > 0 || minutes == 0 ? `${seconds}s` : ''}\n`;
+            `${seconds > 0 || minutes == 0 ? `${seconds}s` : ''}\n`;
     }
-    fieldGametimeRed.value += `\n${
-        blueTeamTimes.length - redTeamTimes.length > 0 ? '\n'.repeat(blueTeamTimes.length - redTeamTimes.length) : ''
-    }`;
+    fieldGametimeRed.value += `\n${blueTeamTimes.length - redTeamTimes.length > 0 ? '\n'.repeat(blueTeamTimes.length - redTeamTimes.length) : ''
+        }`;
     fieldGametimeRed.value += '=====================';
 
     for (let time of blueTeamTimes) {
         var minutes = getMinutesReport(time[1]);
         var seconds = getSecondsReport(time[1]);
         fieldGametimeBlue.value += `> **${time[0].name}:** ${minutes > 0 ? `${minutes}m` : ''}` +
-                                   `${seconds > 0 || minutes == 0 ? `${seconds}s` : ''}\n`;
+            `${seconds > 0 || minutes == 0 ? `${seconds}s` : ''}\n`;
     }
-    fieldGametimeBlue.value += `\n${
-        redTeamTimes.length - blueTeamTimes.length > 0 ? '\n'.repeat(redTeamTimes.length - blueTeamTimes.length) : ''
-    }`;
+    fieldGametimeBlue.value += `\n${redTeamTimes.length - blueTeamTimes.length > 0 ? '\n'.repeat(redTeamTimes.length - blueTeamTimes.length) : ''
+        }`;
     fieldGametimeBlue.value += '=====================';
 
     return [fieldGametimeRed, fieldGametimeBlue];
@@ -1566,25 +1568,23 @@ function fetchActionsSummaryReport(game) {
     if (redActions.length > 0) {
         for (let act of redActions) {
             fieldReportRed.value += `> **${act[0].team != Team.RED ? '[OG] ' : ''}${act[0].name}:` +
-                                    `**${act[1] > 0 ? ` ${act[1]}G` : ''}${act[2] > 0 ? ` ${act[2]}A` : ''}\n`;
+                `**${act[1] > 0 ? ` ${act[1]}G` : ''}${act[2] > 0 ? ` ${act[2]}A` : ''}\n`;
         }
     }
     var blueActions = actionReportCount(goals[1]);
     if (blueActions.length > 0) {
         for (let act of blueActions) {
             fieldReportBlue.value += `> **${act[0].team != Team.BLUE ? '[OG] ' : ''}${act[0].name}:` +
-            `**${act[1] > 0 ? ` ${act[1]}G` : ''}${act[2] > 0 ? ` ${act[2]}A` : ''}\n`;
+                `**${act[1] > 0 ? ` ${act[1]}G` : ''}${act[2] > 0 ? ` ${act[2]}A` : ''}\n`;
         }
     }
 
-    fieldReportRed.value += `\n${
-        blueActions.length - redActions.length > 0 ? '\n'.repeat(blueActions.length - redActions.length) : ''
-    }`;
+    fieldReportRed.value += `\n${blueActions.length - redActions.length > 0 ? '\n'.repeat(blueActions.length - redActions.length) : ''
+        }`;
     fieldReportRed.value += '=====================';
 
-    fieldReportBlue.value += `\n${
-        redActions.length - blueActions.length > 0 ? '\n'.repeat(redActions.length - blueActions.length) : ''
-    }`;
+    fieldReportBlue.value += `\n${redActions.length - blueActions.length > 0 ? '\n'.repeat(redActions.length - blueActions.length) : ''
+        }`;
     fieldReportBlue.value += '=====================';
 
     return [fieldReportRed, fieldReportBlue];
@@ -1665,7 +1665,7 @@ room.onPlayerJoin = function (player) {
             method: 'POST',
             body: JSON.stringify({
                 content: `[${getDate()}] ➡️ JOIN (${players.length + 1}/${maxPlayers})\n**` +
-                         `${player.name}** [${authArray[player.id][0]}] {${authArray[player.id][1]}}`,
+                    `${player.name}** [${authArray[player.id][0]}] {${authArray[player.id][1]}}`,
                 username: roomName,
             }),
             headers: {
@@ -1704,9 +1704,9 @@ room.onPlayerJoin = function (player) {
     var sameAuthCheck = players.filter((p) => p.id != player.id && authArray[p.id][0] == player.auth);
     if (sameAuthCheck.length > 0 && !debugMode) {
         var oldPlayerArray = players.filter((p) => p.id != player.id && authArray[p.id][0] == player.auth);
-            for (let oldPlayer of oldPlayerArray) {
-                ghostKickHandle(oldPlayer, player);
-            }
+        for (let oldPlayer of oldPlayerArray) {
+            ghostKickHandle(oldPlayer, player);
+        }
     }
 };
 
@@ -1720,7 +1720,7 @@ room.onPlayerLeave = function (player) {
         if (!kickFetchVariable) {
             if (roomWebhook != '') {
                 var stringContent = `[${getDate()}] ⬅️ LEAVE (${players.length}/${maxPlayers})\n**${player.name}**` +
-                                    `[${authArray[player.id][0]}] {${authArray[player.id][1]}}`;
+                    `[${authArray[player.id][0]}] {${authArray[player.id][1]}}`;
                 fetch(roomWebhook, {
                     method: 'POST',
                     body: JSON.stringify({
@@ -1742,14 +1742,14 @@ room.onPlayerKicked = function (kickedPlayer, reason, ban, byPlayer) {
     kickFetchVariable = true;
     if (roomWebhook != '') {
         var stringContent = `[${getDate()}] ⛔ ${ban ? 'BAN' : 'KICK'} (${players.length}/${maxPlayers})\n` +
-                            `**${kickedPlayer.name}** [${authArray[kickedPlayer.id][0]}] {${authArray[kickedPlayer.id][1]}} was ${ban ? 'banned' : 'kicked'}` +
-                            `${byPlayer != null ? ' by **' + byPlayer.name + '** [' + authArray[byPlayer.id][0] + '] {' + authArray[byPlayer.id][1] + '}' : ''}`
+            `**${kickedPlayer.name}** [${authArray[kickedPlayer.id][0]}] {${authArray[kickedPlayer.id][1]}} was ${ban ? 'banned' : 'kicked'}` +
+            `${byPlayer != null ? ' by **' + byPlayer.name + '** [' + authArray[byPlayer.id][0] + '] {' + authArray[byPlayer.id][1] + '}' : ''}`
         fetch(roomWebhook, {
             method: 'POST',
             body: JSON.stringify({
                 content: `[${getDate()}] ⛔ ${ban ? 'BAN' : 'KICK'} (${players.length}/${maxPlayers})\n` +
-                `**${kickedPlayer.name}** [${authArray[kickedPlayer.id][0]}] {${authArray[kickedPlayer.id][1]}} was ${ban ? 'banned' : 'kicked'}` +
-                `${byPlayer != null ? ' by **' + byPlayer.name + '** [' + authArray[byPlayer.id][0] + '] {' + authArray[byPlayer.id][1] + '}' : ''}`,
+                    `**${kickedPlayer.name}** [${authArray[kickedPlayer.id][0]}] {${authArray[kickedPlayer.id][1]}} was ${ban ? 'banned' : 'kicked'}` +
+                    `${byPlayer != null ? ' by **' + byPlayer.name + '** [' + authArray[byPlayer.id][0] + '] {' + authArray[byPlayer.id][1] + '}' : ''}`,
                 username: roomName,
             }),
             headers: {
@@ -1879,16 +1879,16 @@ room.onGameStop = function (byPlayer) {
         (
             (game.scores.timeLimit != 0 &&
                 ((game.scores.time >= 0.5 * game.scores.timeLimit &&
-                game.scores.time < 0.75 * game.scores.timeLimit &&
-                game.scores.red != game.scores.blue) ||
-                game.scores.time >= 0.75 * game.scores.timeLimit)
+                    game.scores.time < 0.75 * game.scores.timeLimit &&
+                    game.scores.red != game.scores.blue) ||
+                    game.scores.time >= 0.75 * game.scores.timeLimit)
             ) ||
             endGameVariable
         )
     ) {
         fetchSummaryEmbed(game);
         if (fetchRecordingVariable) {
-            fetchRecording(game);
+            setTimeout(() => { fetchRecording(game); }, 500);
         }
     }
     cancelGameVariable = false;
@@ -1908,15 +1908,15 @@ room.onGamePause = function (byPlayer) {
                 'bold',
                 HaxNotification.NONE
             );
-    } else {
-        room.sendAnnouncement(
-            `Game paused !`,
-            null,
-            defaultColor,
-            'bold',
-            HaxNotification.NONE
-        );
-    }
+        } else {
+            room.sendAnnouncement(
+                `Game paused !`,
+                null,
+                defaultColor,
+                'bold',
+                HaxNotification.NONE
+            );
+        }
     }
     clearTimeout(unpauseTimeout);
     gameState = State.PAUSE;
