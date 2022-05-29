@@ -639,7 +639,7 @@ function getRecordingName(game) {
 }
 
 function fetchRecording(game) {
-    if (gameWebhook != null) {
+    if (gameWebhook != "") {
         let form = new FormData();
         form.append(null, new File([game.rec], getRecordingName(game), {"type": "text/plain"}));
 
