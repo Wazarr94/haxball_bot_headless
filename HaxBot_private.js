@@ -9,7 +9,7 @@ const token = ""; // Insert token here
 
 var roomWebhook = ''; // this webhook is used to send the details of the room (chat, join, leave) ; it should be in a private discord channel
 var gameWebhook = ''; // this webhook is used to send the summary of the games ; it should be in a public discord channel
-var saveRecordingVariable = true;
+var fetchRecordingVariable = true;
 var timeLimit = 3;
 var scoreLimit = 3;
 
@@ -396,27 +396,6 @@ function getIdReport() {
     return `${d.getFullYear() % 100}${d.getMonth() < 9 ? '0' : ''}${d.getMonth() + 1}${d.getDate() < 10 ? '0' : ''}${d.getDate()}${d.getHours() < 10 ? '0' : ''}${d.getHours()}${d.getMinutes() < 10 ? '0' : ''}${d.getMinutes()}${d.getSeconds() < 10 ? '0' : ''}${d.getSeconds()}${findFirstNumberCharString(roomName)}`;
 }
 
-function downloadFile(file, fileName) {
-    var c = window.document.createElement('a');
-    c.style.display = 'display: none';
-    window.document.body.appendChild(c);
-    var d = URL.createObjectURL(file);
-    c.href = d;
-    c.download = fileName;
-    c.click();
-    URL.revokeObjectURL(d);
-    c.remove();
-}
-
-function downloadRec(rec, fileName) {
-    downloadFile(
-        new Blob([rec], {
-            type: 'octet/stream',
-        }),
-        fileName
-    );
-}
-
 function getRecordingName(game) {
     var d = new Date();
     var redCap = game.playerComp[0][0] != undefined ? game.playerComp[0][0].player.name : 'Red';
@@ -424,8 +403,16 @@ function getRecordingName(game) {
     return `${d.getDate()}-${d.getMonth() < 10 ? '0' + (d.getMonth() + 1) : d.getMonth() + 1}-${d.getFullYear() % 100}-${d.getHours()}h${d.getMinutes()}-${redCap}vs${blueCap}.hbr2`;
 }
 
-function saveRecording(game) {
-    downloadRec(game.rec, getRecordingName(game));
+function fetchRecording(game) {
+    if (gameWebhook != null) {
+        let form = new FormData();
+        form.append(null, new File([game.rec], getRecordingName(game), {"type": "text/plain"}));
+
+        fetch(gameWebhook, {
+            method: 'POST',
+            body: form,
+        }).then((res) => res);
+    }
 }
 
 /* FEATURE FUNCTIONS */
@@ -1899,8 +1886,10 @@ room.onGameStop = function (byPlayer) {
             endGameVariable
         )
     ) {
-        if (saveRecordingVariable) saveRecording(game);
         fetchSummaryEmbed(game);
+        if (fetchRecordingVariable) {
+            fetchRecording(game);
+        }
     }
     cancelGameVariable = false;
     gameState = State.STOP;
