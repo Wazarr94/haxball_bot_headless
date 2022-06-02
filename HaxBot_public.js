@@ -142,6 +142,14 @@ class MuteList {
         return null;
     }
 
+    getByPlayerId(id) {
+        var index = this.list.findIndex(mutePlayer => mutePlayer.playerId === id);
+        if (index !== -1) {
+            return this.list[index];
+        }
+        return null;
+    }
+
     getByAuth(auth) {
         var index = this.list.findIndex(mutePlayer => mutePlayer.auth === auth);
         if (index !== -1) {
@@ -1261,8 +1269,8 @@ function unmuteCommand(player, message) {
             msgArray[0] = msgArray[0].substring(1, msgArray[0].length);
             if (room.getPlayer(parseInt(msgArray[0])) != null) {
                 var playerUnmute = room.getPlayer(parseInt(msgArray[0]));
-                if (muteArray.getById(playerUnmute.id) != null) {
-                    var muteObj = muteArray.getById(playerUnmute.id);
+                if (muteArray.getByPlayerId(playerUnmute.id) != null) {
+                    var muteObj = muteArray.getByPlayerId(playerUnmute.id);
                     muteObj.remove()
                     room.sendAnnouncement(
                         `${playerUnmute.name} has been unmuted !`,
