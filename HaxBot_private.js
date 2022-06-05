@@ -1893,7 +1893,7 @@ room.onGameStop = function (byPlayer) {
     ) {
         fetchSummaryEmbed(game);
         if (fetchRecordingVariable) {
-            setTimeout(() => { fetchRecording(game); }, 500);
+            setTimeout((gameEnd) => { fetchRecording(gameEnd); }, 500, game);
         }
     }
     cancelGameVariable = false;

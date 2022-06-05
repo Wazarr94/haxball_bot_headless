@@ -86,6 +86,7 @@ class PlayerComposition {
         this.timeEntry = timeEntry;
         this.timeExit = timeExit;
         this.inactivityTicks = 0;
+        this.GKTicks = 0;
     }
 }
 
@@ -191,6 +192,7 @@ class HaxStatistics {
         this.playtime = 0;
         this.goals = 0;
         this.assists = 0;
+        this.CS = 0;
         this.ownGoals = 0;
     }
 }
@@ -316,6 +318,13 @@ Example: \'!help bb\' will show the description of the \'bb\' command.`,
         roles: Role.PLAYER,
         desc: `
         This command shows the top 5 players with the most assists in the room.`,
+        function: statsLeaderboardCommand,
+    },
+    cs: {
+        aliases: [],
+        roles: Role.PLAYER,
+        desc: `
+        This command shows the top 5 players with the most CS in the room.`,
         function: statsLeaderboardCommand,
     },
     playtime: {
@@ -2609,6 +2618,46 @@ function handlePlayersStop(byPlayer) {
 
 /* STATS FUNCTIONS */
 
+/* GK FUNCTIONS */
+
+function handleGKTeam(team) {
+    if (team == Team.SPECTATORS) {
+        return null;
+    }
+    let teamArray = team == Team.RED ? teamRed : teamBlue;
+    let playerGK = teamArray.reduce((prev, current) => {
+        if (team == Team.RED) {
+            return (prev?.position.x < current.position.x) ? prev : current
+        } else {
+            return (prev?.position.x > current.position.x) ? prev : current
+        }
+    }, null);
+    let playerCompGK = getPlayerComp(playerGK);
+    return playerCompGK;
+}
+
+function handleGK() {
+    let redGK = handleGKTeam(Team.RED);
+    if (redGK != null) {
+        redGK.GKTicks++;
+    }
+    let blueGK = handleGKTeam(Team.BLUE);
+    if (blueGK != null) {
+        blueGK.GKTicks++;
+    }
+}
+
+function getGK(team) {
+    if (team == Team.SPECTATORS) {
+        return null;
+    }
+    let teamArray = team == Team.RED ? game.playerComp[0] : game.playerComp[1];
+    let playerGK = teamArray.reduce((prev, current) => {
+        return (prev?.GKTicks > current.GKTicks) ? prev : current
+    }, null);
+    return playerGK;
+}
+
 /* GLOBAL STATS FUNCTIONS */
 
 function getLastTouchOfTheBall() {
@@ -2662,6 +2711,7 @@ function getGameStats() {
         lastTeamTouched == Team.RED ? possession[0]++ : possession[1]++;
         var ballPosition = room.getBallPosition();
         ballPosition.x < 0 ? actionZoneHalf[0]++ : actionZoneHalf[1]++;
+        handleGK();
     }
 }
 
@@ -2737,6 +2787,7 @@ function updatePlayerStats(player, teamStats) {
     stats.goals += getGoalsPlayer(pComp);
     stats.assists += getAssistsPlayer(pComp);
     stats.ownGoals += getOwnGoalsPlayer(pComp);
+    stats.CS += getCSPlayer(pComp);
     stats.playtime += getGametimePlayer(pComp);
     localStorage.setItem(authArray[player.id][0], JSON.stringify(stats));
 }
@@ -2809,6 +2860,7 @@ function getGamePlayerStats(player) {
     stats.assists += getAssistsPlayer(pComp);
     stats.ownGoals += getOwnGoalsPlayer(pComp);
     stats.playtime += getGametimePlayer(pComp);
+    stats.CS += getCSPlayer(pComp);
     return stats;
 }
 
@@ -2858,6 +2910,27 @@ function getAssistsPlayer(pComp) {
         }
     }
     return assistPlayer;
+}
+
+function getGKPlayer(pComp) {
+    let GKRed = getGK(Team.RED);
+    if (pComp.auth == GKRed?.auth) {
+        return Team.RED;
+    }
+    let GKBlue = getGK(Team.BLUE);
+    if (pComp.auth == GKBlue?.auth) {
+        return Team.BLUE;
+    }
+    return Team.SPECTATORS;
+}
+
+function getCSPlayer(pComp) {
+    if (getGKPlayer(pComp) == Team.RED && game.scores.blue == 0) {
+        return 1;
+    } else if (getGKPlayer(pComp) == Team.BLUE && game.scores.red == 0) {
+        return 1;
+    }
+    return 0;
 }
 
 function actionReportCount(goals) {
@@ -3331,7 +3404,7 @@ room.onGameStop = function (byPlayer) {
     ) {
         fetchSummaryEmbed(game);
         if (fetchRecordingVariable) {
-            setTimeout(() => { fetchRecording(game); }, 500);
+            setTimeout((gameEnd) => { fetchRecording(gameEnd); }, 500, game);
         }
     }
     cancelGameVariable = false;
