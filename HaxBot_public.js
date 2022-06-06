@@ -2873,7 +2873,7 @@ function getGametimePlayer(pComp) {
             timePlayer += pComp.timeExit[j] - pComp.timeEntry[j];
         }
     }
-    return timePlayer;
+    return Math.floor(timePlayer);
 }
 
 function getGoalsPlayer(pComp) {
