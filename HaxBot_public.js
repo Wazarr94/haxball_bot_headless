@@ -1751,11 +1751,15 @@ function endGame(winner) {
     }
     let possessionRedPct = (possession[0] / (possession[0] + possession[1])) * 100;
     let possessionBluePct = 100 - possessionRedPct;
+    let possessionString = `🔴 ${possessionRedPct.toFixed(3)}% - ${possessionBluePct.toFixed(3)}% 🔵`;
     let actionRedPct = (actionZoneHalf[0] / (actionZoneHalf[0] + actionZoneHalf[1])) * 100;
     let actionBluePct = 100 - actionRedPct;
+    let actionString = `🔴 ${actionRedPct.toFixed(3)}% - ${actionBluePct.toFixed(3)}% 🔵`;
+    let CSString = getCSString(scores);
     room.sendAnnouncement(
-        `📊 Possession: 🔴 ${(possessionRedPct).toPrecision(3)}% - ${(possessionBluePct).toPrecision(3)}% 🔵\n` +
-        `📊 Action Zone: 🔴 ${(actionRedPct).toPrecision(3)}% - ${(actionBluePct).toPrecision(3)}% 🔵`,
+        `📊 Possession: 🔴 ${possessionString}\n` +
+        `📊 Action Zone: 🔴 ${actionString}\n` +
+        `${CSString}`,
         null,
         announcementColor,
         'bold',
@@ -2658,6 +2662,30 @@ function getGK(team) {
     return playerGK;
 }
 
+function getCS(scores) {
+    let playersNameCS = [];
+    let redGK = getGK(Team.RED);
+    let blueGK = getGK(Team.BLUE);
+    if (redGK != null && scores.blue == 0) {
+        playersNameCS.push(redGK.player.name);
+    }
+    if (blueGK != null && scores.red == 0) {
+        playersNameCS.push(blueGK.player.name);
+    }
+    return playersNameCS;
+}
+
+function getCSString(scores) {
+    let playersCS = getCS(scores);
+    if (playersCS.length == 0) {
+        return "🥅 No CS";
+    } else if (playersCS.length == 1) {
+        return `🥅 ${playersCS[0]} had a CS.`;
+    } else {
+        return `🥅 ${playersCS[0]} and ${playersCS[1]} had a CS.`;
+    }
+}
+
 /* GLOBAL STATS FUNCTIONS */
 
 function getLastTouchOfTheBall() {
@@ -2783,7 +2811,7 @@ function updatePlayerStats(player, teamStats) {
     }
     stats.games++;
     if (lastWinner == teamStats) stats.wins++;
-    stats.winrate = ((100 * stats.wins) / (stats.games || 1)).toPrecision(3) + `%`;
+    stats.winrate = ((100 * stats.wins) / (stats.games || 1)).toFixed(3) + `%`;
     stats.goals += getGoalsPlayer(pComp);
     stats.assists += getAssistsPlayer(pComp);
     stats.ownGoals += getOwnGoalsPlayer(pComp);
@@ -2933,28 +2961,42 @@ function getCSPlayer(pComp) {
     return 0;
 }
 
-function actionReportCount(goals) {
-    var playerActionSummary = [];
-    for (let goal of goals) {
+function actionReportCountTeam(goals, team) {
+    let playerActionSummaryTeam = [];
+    let indexTeam = team == Team.RED ? 0 : 1;
+    let indexOtherTeam = team == Team.RED ? 1 : 0;
+    for (let goal of goals[indexTeam]) {
         if (goal[0] != null) {
-            if (playerActionSummary.find((a) => a[0].id == goal[0].id)) {
-                var index = playerActionSummary.findIndex((a) => a[0].id == goal[0].id);
-                playerActionSummary[index][1]++;
+            if (playerActionSummaryTeam.find(a => a[0].id == goal[0].id)) {
+                let index = playerActionSummaryTeam.findIndex(a => a[0].id == goal[0].id);
+                playerActionSummaryTeam[index][1]++;
             } else {
-                playerActionSummary.push([goal[0], 1, 0, 0]);
+                playerActionSummaryTeam.push([goal[0], 1, 0, 0]);
             }
             if (goal[1] != null) {
-                if (playerActionSummary.find((a) => a[0].id == goal[1].id)) {
-                    var index = playerActionSummary.findIndex((a) => a[0].id == goal[1].id);
-                    playerActionSummary[index][2]++;
+                if (playerActionSummaryTeam.find(a => a[0].id == goal[1].id)) {
+                    let index = playerActionSummaryTeam.findIndex(a => a[0].id == goal[1].id);
+                    playerActionSummaryTeam[index][2]++;
                 } else {
-                    playerActionSummary.push([goal[1], 0, 1, 0]);
+                    playerActionSummaryTeam.push([goal[1], 0, 1, 0]);
                 }
             }
         }
     }
-    playerActionSummary.sort((a, b) => a[1] + a[2] - (b[1] + b[2]));
-    return playerActionSummary;
+    if (goals[indexOtherTeam].length == 0) {
+        let playerCS = getGK(team)?.player;
+        if (playerCS != null) {
+            if (playerActionSummaryTeam.find(a => a[0].id == playerCS.id)) {
+                let index = playerActionSummaryTeam.findIndex(a => a[0].id == playerCS.id);
+                playerActionSummaryTeam[index][3]++;
+            } else {
+                playerActionSummaryTeam.push([playerCS, 0, 0, 1]);
+            }
+        }
+    }
+
+    playerActionSummaryTeam.sort((a, b) => (a[1] + a[2] + a[3]) - (b[1] + b[2] + b[3]));
+    return playerActionSummaryTeam;
 }
 
 /* PRINT FUNCTIONS */
@@ -3028,18 +3070,22 @@ function fetchActionsSummaryReport(game) {
     for (let i = 0; i < game.goals.length; i++) {
         goals[game.goals[i].team - 1].push([game.goals[i].striker, game.goals[i].assist]);
     }
-    var redActions = actionReportCount(goals[0]);
+    var redActions = actionReportCountTeam(goals, Team.RED);
     if (redActions.length > 0) {
         for (let act of redActions) {
-            fieldReportRed.value += `> **${act[0].team != Team.RED ? '[OG] ' : ''}${act[0].name}:` +
-                `**${act[1] > 0 ? ` ${act[1]}G` : ''}${act[2] > 0 ? ` ${act[2]}A` : ''}\n`;
+            fieldReportRed.value += `> **${act[0].team != Team.RED ? '[OG] ' : ''}${act[0].name}:**` +
+                `${act[1] > 0 ? ` ${act[1]}G` : ''}` +
+                `${act[2] > 0 ? ` ${act[2]}A` : ''}` +
+                `${act[3] > 0 ? ` ${act[3]}CS` : ''}\n`;
         }
     }
-    var blueActions = actionReportCount(goals[1]);
+    var blueActions = actionReportCountTeam(goals, Team.BLUE);
     if (blueActions.length > 0) {
         for (let act of blueActions) {
-            fieldReportBlue.value += `> **${act[0].team != Team.BLUE ? '[OG] ' : ''}${act[0].name}:` +
-                `**${act[1] > 0 ? ` ${act[1]}G` : ''}${act[2] > 0 ? ` ${act[2]}A` : ''}\n`;
+            fieldReportBlue.value += `> **${act[0].team != Team.BLUE ? '[OG] ' : ''}${act[0].name}:**` +
+                `${act[1] > 0 ? ` ${act[1]}G` : ''}` +
+                `${act[2] > 0 ? ` ${act[2]}A` : ''}` +
+                `${act[3] > 0 ? ` ${act[3]}CS` : ''}\n`;
         }
     }
 
@@ -3079,12 +3125,12 @@ function fetchSummaryEmbed(game) {
 
     var possR = possession[0] / (possession[0] + possession[1]);
     var possB = 1 - possR;
-    var possRString = (possR * 100).toPrecision(3).toString();
-    var possBString = (possB * 100).toPrecision(3).toString();
+    var possRString = (possR * 100).toFixed(3).toString();
+    var possBString = (possB * 100).toFixed(3).toString();
     var zoneR = actionZoneHalf[0] / (actionZoneHalf[0] + actionZoneHalf[1]);
     var zoneB = 1 - zoneR;
-    var zoneRString = (zoneR * 100).toPrecision(3).toString();
-    var zoneBString = (zoneB * 100).toPrecision(3).toString();
+    var zoneRString = (zoneR * 100).toFixed(3).toString();
+    var zoneBString = (zoneB * 100).toFixed(3).toString();
     var win = (game.scores.red > game.scores.blue) * 1 + (game.scores.blue > game.scores.red) * 2;
     var objectBodyWebhook = {
         embeds: [
