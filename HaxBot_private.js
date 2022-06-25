@@ -1116,10 +1116,10 @@ function endGame(winner) {
     }
     let possessionRedPct = (possession[0] / (possession[0] + possession[1])) * 100;
     let possessionBluePct = 100 - possessionRedPct;
-    let possessionString = `🔴 ${possessionRedPct.toFixed(3)}% - ${possessionBluePct.toFixed(3)}% 🔵`;
+    let possessionString = `🔴 ${possessionRedPct.toFixed(0)}% - ${possessionBluePct.toFixed(0)}% 🔵`;
     let actionRedPct = (actionZoneHalf[0] / (actionZoneHalf[0] + actionZoneHalf[1])) * 100;
     let actionBluePct = 100 - actionRedPct;
-    let actionString = `🔴 ${actionRedPct.toFixed(3)}% - ${actionBluePct.toFixed(3)}% 🔵`;
+    let actionString = `🔴 ${actionRedPct.toFixed(0)}% - ${actionBluePct.toFixed(0)}% 🔵`;
     let CSString = getCSString(scores);
     room.sendAnnouncement(
         `📊 Possession: 🔴 ${possessionString}\n` +
@@ -1707,12 +1707,12 @@ function fetchSummaryEmbed(game) {
 
     var possR = possession[0] / (possession[0] + possession[1]);
     var possB = 1 - possR;
-    var possRString = (possR * 100).toFixed(3).toString();
-    var possBString = (possB * 100).toFixed(3).toString();
+    var possRString = (possR * 100).toFixed(0).toString();
+    var possBString = (possB * 100).toFixed(0).toString();
     var zoneR = actionZoneHalf[0] / (actionZoneHalf[0] + actionZoneHalf[1]);
     var zoneB = 1 - zoneR;
-    var zoneRString = (zoneR * 100).toFixed(3).toString();
-    var zoneBString = (zoneB * 100).toFixed(3).toString();
+    var zoneRString = (zoneR * 100).toFixed(0).toString();
+    var zoneBString = (zoneB * 100).toFixed(0).toString();
     var win = (game.scores.red > game.scores.blue) * 1 + (game.scores.blue > game.scores.red) * 2;
     var objectBodyWebhook = {
         embeds: [
