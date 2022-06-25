@@ -3279,9 +3279,7 @@ room.onPlayerKicked = function (kickedPlayer, reason, ban, byPlayer) {
         fetch(roomWebhook, {
             method: 'POST',
             body: JSON.stringify({
-                content: `[${getDate()}] ⛔ ${ban ? 'BAN' : 'KICK'} (${players.length}/${maxPlayers})\n` +
-                    `**${kickedPlayer.name}** [${authArray[kickedPlayer.id][0]}] {${authArray[kickedPlayer.id][1]}} was ${ban ? 'banned' : 'kicked'}` +
-                    `${byPlayer != null ? ' by **' + byPlayer.name + '** [' + authArray[byPlayer.id][0] + '] {' + authArray[byPlayer.id][1] + '}' : ''}`,
+                content: stringContent,
                 username: roomName,
             }),
             headers: {
