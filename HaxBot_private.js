@@ -997,7 +997,7 @@ function passwordCommand(player, message) {
         roomPassword = msgArray.join(' ');
         room.setPassword(roomPassword);
         room.sendAnnouncement(
-            `The room password has been set to ${roomPassword}.`,
+            `The room password has been set to ${roomPassword}`,
             player.id,
             announcementColor,
             'bold',
