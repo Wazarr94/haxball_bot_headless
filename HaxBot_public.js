@@ -2893,6 +2893,7 @@ function getGamePlayerStats(player) {
 }
 
 function getGametimePlayer(pComp) {
+    if (pComp == null) return 0;
     var timePlayer = 0;
     for (let j = 0; j < pComp.timeEntry.length; j++) {
         if (pComp.timeExit.length < j + 1) {
@@ -2905,6 +2906,7 @@ function getGametimePlayer(pComp) {
 }
 
 function getGoalsPlayer(pComp) {
+    if (pComp == null) return 0;
     var goalPlayer = 0;
     for (let goal of game.goals) {
         if (goal.striker != null && goal.team === pComp.player.team) {
@@ -2917,6 +2919,7 @@ function getGoalsPlayer(pComp) {
 }
 
 function getOwnGoalsPlayer(pComp) {
+    if (pComp == null) return 0;
     var goalPlayer = 0;
     for (let goal of game.goals) {
         if (goal.striker != null && goal.team !== pComp.player.team) {
@@ -2929,6 +2932,7 @@ function getOwnGoalsPlayer(pComp) {
 }
 
 function getAssistsPlayer(pComp) {
+    if (pComp == null) return 0;
     var assistPlayer = 0;
     for (let goal of game.goals) {
         if (goal.assist != null) {
@@ -2941,6 +2945,7 @@ function getAssistsPlayer(pComp) {
 }
 
 function getGKPlayer(pComp) {
+    if (pComp == null) return 0;
     let GKRed = getGK(Team.RED);
     if (pComp.auth == GKRed?.auth) {
         return Team.RED;
@@ -2953,6 +2958,7 @@ function getGKPlayer(pComp) {
 }
 
 function getCSPlayer(pComp) {
+    if (pComp == null || game.scores == null) return 0;
     if (getGKPlayer(pComp) == Team.RED && game.scores.blue == 0) {
         return 1;
     } else if (getGKPlayer(pComp) == Team.BLUE && game.scores.red == 0) {
