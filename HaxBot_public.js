@@ -2846,6 +2846,7 @@ function updateStats() {
 
 function printRankings(statKey, id = 0) {
     var leaderboard = [];
+    statKey = statKey == "cs" ? "CS" : statKey;
     for (var i = 0; i < localStorage.length; i++) {
         var key = localStorage.key(i);
         if (key.length == 43)
