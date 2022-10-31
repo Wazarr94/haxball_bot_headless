@@ -698,8 +698,13 @@ function getPlayerComp(player) {
     return null;
 }
 
-function getTeamArray(team) {
-    return team == Team.RED ? teamRed : team == Team.BLUE ? teamBlue : teamSpec;
+function getTeamArray(team, includeAFK = true) {
+    if (team == Team.RED) return teamRed;
+    if (team == Team.BLUE) return teamBlue;
+    if (includeAFK) {
+      return playersAll.filter((p) => p.team === Team.SPECTATORS);
+    }
+    return teamSpec;
 }
 
 function sendAnnouncementTeam(message, team, color, style, mention) {
@@ -712,7 +717,7 @@ function teamChat(player, message) {
     var msgArray = message.split(/ +/).slice(1);
     var emoji = player.team == Team.RED ? '🔴' : player.team == Team.BLUE ? '🔵' : '⚪';
     var message = `${emoji} [TEAM] ${player.name}: ${msgArray.join(' ')}`;
-    var team = getTeamArray(player.team);
+    var team = getTeamArray(player.team, true);
     var color = player.team == Team.RED ? redColor : player.team == Team.BLUE ? blueColor : null;
     var style = 'bold';
     var mention = HaxNotification.CHAT;
@@ -2047,7 +2052,7 @@ function getRole(player) {
 }
 
 function ghostKickHandle(oldP, newP) {
-    var teamArrayId = getTeamArray(oldP.team).map((p) => p.id);
+    var teamArrayId = getTeamArray(oldP.team, true).map((p) => p.id);
     teamArrayId.splice(teamArrayId.findIndex((id) => id == oldP.id), 1, newP.id);
 
     room.kickPlayer(oldP.id, 'Ghost kick', false);
